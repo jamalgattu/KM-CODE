@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Code Editor"
+version = "1.0.0"
+id = "artifacts/vscode-mobile"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24641
+
+[services.development]
+run = "pnpm --filter @workspace/vscode-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vscode-mobile", "run", "build" ]
+publicDir = "artifacts/vscode-mobile/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24641"
+BASE_PATH = "/"

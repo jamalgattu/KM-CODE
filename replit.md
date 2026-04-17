@@ -16,6 +16,37 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### Code Editor (`artifacts/vscode-mobile`) - Preview Path: `/`
+
+A fully-functional VS Code-like code editor optimized for mobile browsers.
+
+**Features:**
+- Full code editor powered by **CodeMirror 6** with syntax highlighting
+- File Explorer with create/rename/delete operations
+- Multi-tab editing with unsaved indicators
+- Terminal emulator with command execution (help, ls, git, npm, node, etc.)
+- Search across all files with match highlighting
+- Git panel with staged/unstaged changes view
+- Extensions panel with install/uninstall
+- Settings panel: theme, font size, tab size, word wrap, minimap, line numbers, auto-save
+- Dual theme (VS Code Dark+ and Light)
+- Status bar with git branch, error/warning counts, language, auto-save indicator
+- Menu bar: File, Edit, View, Run with keyboard shortcuts
+- Keyboard shortcuts: ⌘S (save), ⌘B (sidebar), ⌘` (terminal), ⌘⇧F (search), ⌘⇧E (explorer)
+- Drag-to-resize bottom panel (Terminal/Problems/Output)
+- State persistence via localStorage (Zustand persist)
+
+**Languages supported:** TypeScript, JavaScript, Python, CSS/SCSS, HTML, JSON, Markdown, SQL, Rust, Java, C++, PHP, XML
+
+**Tech:**
+- React + Vite
+- Zustand (state management with localStorage persistence)
+- CodeMirror 6 (editor engine)
+- Tailwind CSS + shadcn/ui
+- Lucide React icons
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
