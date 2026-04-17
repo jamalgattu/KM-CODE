@@ -8,6 +8,7 @@ import { EditorArea } from "@/components/Editor/EditorArea";
 import { BottomPanel } from "@/components/Panel/BottomPanel";
 import { StatusBar } from "@/components/StatusBar/StatusBar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useBackendSync } from "@/hooks/useBackendSync";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
 const SIDEBAR_WIDTH_MOBILE = 200;
@@ -20,6 +21,9 @@ export function EditorPage() {
   } = useEditorStore();
   const isMobile = useIsMobile();
 
+  // Wire up backend — loads files from DB on mount, seeds if empty
+  useBackendSync();
+
   // Apply theme to html element
   useEffect(() => {
     const root = document.documentElement;
@@ -30,7 +34,7 @@ export function EditorPage() {
     }
   }, [theme]);
 
-  // Open first file on mount if no tabs open
+  // Open first file whenever tabs become empty (on mount or after API sync clears tabs)
   const { openTabs } = useEditorStore();
   useEffect(() => {
     if (openTabs.length === 0 && files.length > 0) {
@@ -47,7 +51,7 @@ export function EditorPage() {
       const firstFileId = findFirstFile(files);
       if (firstFileId) openFile(firstFileId);
     }
-  }, []);
+  }, [openTabs.length, files]);
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback(

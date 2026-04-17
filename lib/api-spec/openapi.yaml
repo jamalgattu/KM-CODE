@@ -3,20 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Code Editor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: files
+    description: File system operations
+  - name: execute
+    description: Code execution
+  - name: terminal
+    description: Terminal operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +29,140 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /files:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List all files
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FileEntry"
+    post:
+      operationId: createFile
+      tags: [files]
+      summary: Create a new file or folder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFileBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileEntry"
+        "400":
+          description: Bad request
+
+  /files/{id}:
+    get:
+      operationId: getFile
+      tags: [files]
+      summary: Get file by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileEntry"
+        "404":
+          description: Not found
+    put:
+      operationId: updateFile
+      tags: [files]
+      summary: Update file content or name
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFileBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileEntry"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteFile
+      tags: [files]
+      summary: Delete file or folder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /execute:
+    post:
+      operationId: executeCode
+      tags: [execute]
+      summary: Execute code and return output
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteCodeBody"
+      responses:
+        "200":
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecuteResult"
+
+  /terminal:
+    post:
+      operationId: runTerminalCommand
+      tags: [terminal]
+      summary: Run a shell command in the terminal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TerminalCommandBody"
+      responses:
+        "200":
+          description: Command output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TerminalResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +173,120 @@ components:
       required:
         - status
 
+    FileEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        type:
+          type: string
+          enum: [file, folder]
+        path:
+          type: string
+        content:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        parentId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - type
+        - path
+        - content
+        - language
+        - parentId
+        - createdAt
+        - updatedAt
+
+    CreateFileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [file, folder]
+        parentId:
+          type: ["integer", "null"]
+        content:
+          type: string
+        language:
+          type: string
+        path:
+          type: string
+      required:
+        - name
+        - type
+        - path
+
+    UpdateFileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+        language:
+          type: string
+        path:
+          type: string
+
+    ExecuteCodeBody:
+      type: object
+      properties:
+        code:
+          type: string
+        language:
+          type: string
+        filename:
+          type: string
+      required:
+        - code
+        - language
+
+    ExecuteResult:
+      type: object
+      properties:
+        stdout:
+          type: string
+        stderr:
+          type: string
+        exitCode:
+          type: integer
+        executionTime:
+          type: number
+      required:
+        - stdout
+        - stderr
+        - exitCode
+        - executionTime
+
+    TerminalCommandBody:
+      type: object
+      properties:
+        command:
+          type: string
+      required:
+        - command
+
+    TerminalResult:
+      type: object
+      properties:
+        output:
+          type: string
+        exitCode:
+          type: integer
+        error:
+          type: ["string", "null"]
+      required:
+        - output
+        - exitCode
+        - error

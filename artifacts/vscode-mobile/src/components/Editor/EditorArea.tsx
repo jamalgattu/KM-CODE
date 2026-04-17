@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { CodeEditor } from "./CodeEditor";
-import { Files } from "lucide-react";
+import { Files, Play, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const RUNNABLE_LANGS = new Set(["javascript", "typescript", "python", "python3", "bash", "sh"]);
 
 export function EditorArea() {
-  const { openTabs, activeTabId, files, updateFileContent, openFile } = useEditorStore();
+  const { openTabs, activeTabId, files, updateFileContent, setActivePanel, addTerminalLine } = useEditorStore();
+  const [running, setRunning] = useState(false);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
@@ -19,6 +24,45 @@ export function EditorArea() {
       return "";
     };
     return findContent(files);
+  };
+
+  const handleRun = async () => {
+    if (!activeTab || running) return;
+    const content = getFileContent(activeTab.fileId);
+    if (!content.trim()) return;
+
+    setRunning(true);
+    setActivePanel("terminal");
+
+    addTerminalLine({ type: "info", content: `Running ${activeTab.fileName}...` });
+
+    try {
+      const res = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: content,
+          language: activeTab.language || "javascript",
+          filename: activeTab.fileName,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.stdout) {
+        addTerminalLine({ type: "output", content: data.stdout });
+      }
+      if (data.stderr) {
+        addTerminalLine({ type: "error", content: data.stderr });
+      }
+      addTerminalLine({
+        type: data.exitCode === 0 ? "info" : "error",
+        content: `Process exited with code ${data.exitCode} (${data.executionTime.toFixed(2)}s)`,
+      });
+    } catch (err) {
+      addTerminalLine({ type: "error", content: `Failed to execute: ${String(err)}` });
+    } finally {
+      setRunning(false);
+    }
   };
 
   if (!activeTab) {
@@ -70,19 +114,40 @@ export function EditorArea() {
   }
 
   const content = getFileContent(activeTab.fileId);
+  const canRun = RUNNABLE_LANGS.has((activeTab.language || "").toLowerCase());
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      {/* File path breadcrumb */}
+      {/* File path breadcrumb + Run button */}
       <div className="flex items-center gap-1 px-3 py-1 text-xs text-muted-foreground border-b border-border/50 bg-background shrink-0">
-        {activeTab.filePath.split("/").map((part, idx, arr) => (
-          <span key={idx} className="flex items-center gap-1">
-            {idx > 0 && <span className="text-border">/</span>}
-            <span className={idx === arr.length - 1 ? "text-foreground" : ""}>
-              {part}
+        <div className="flex-1 flex items-center gap-1 min-w-0 overflow-hidden">
+          {activeTab.filePath.split("/").map((part, idx, arr) => (
+            <span key={idx} className="flex items-center gap-1 shrink-0">
+              {idx > 0 && <span className="text-border">/</span>}
+              <span className={idx === arr.length - 1 ? "text-foreground" : ""}>{part}</span>
             </span>
-          </span>
-        ))}
+          ))}
+        </div>
+
+        {canRun && (
+          <button
+            onClick={handleRun}
+            disabled={running}
+            title={`Run ${activeTab.fileName}`}
+            className={cn(
+              "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors shrink-0 ml-2",
+              "bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30",
+              running && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {running ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Play size={11} />
+            )}
+            {running ? "Running..." : "Run"}
+          </button>
+        )}
       </div>
 
       {/* Editor */}

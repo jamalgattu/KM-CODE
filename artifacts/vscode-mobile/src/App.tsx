@@ -4,7 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { EditorPage } from "@/pages/Editor";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+    },
+  },
+});
 
 function Router() {
   return (

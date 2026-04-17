@@ -481,6 +481,9 @@ interface EditorStore extends EditorState {
 
   // Save
   saveCurrentFile: () => void;
+
+  // Backend sync
+  setFilesFromApi: (files: FileNode[]) => void;
 }
 
 function findFileById(nodes: FileNode[], id: string): FileNode | null {
@@ -868,27 +871,46 @@ export const useEditorStore = create<EditorStore>()(
         const { addTerminalLine } = get();
         addTerminalLine({ type: "input", content: `$ ${command}` });
 
-        const parts = command.trim().split(/\s+/);
-        const cmd = parts[0].toLowerCase();
-        const args = parts.slice(1);
+        const trimmed = command.trim();
+        if (!trimmed) return;
 
-        if (cmd === "clear") {
+        if (trimmed === "clear") {
           get().clearTerminal();
           return;
         }
 
-        const handler = TERMINAL_COMMANDS[cmd];
-        if (handler) {
-          const output = handler(args);
-          addTerminalLine({ type: "output", content: output });
-        } else if (cmd === "") {
-          // no-op
-        } else {
-          addTerminalLine({
-            type: "error",
-            content: `bash: ${cmd}: command not found. Type 'help' for available commands.`,
+        // Try real backend terminal API first
+        fetch("/api/terminal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command: trimmed }),
+        })
+          .then(async (res) => {
+            const data = await res.json();
+            if (data.error && !data.output) {
+              addTerminalLine({ type: "error", content: data.error });
+            } else if (data.output) {
+              addTerminalLine({
+                type: data.exitCode !== 0 ? "error" : "output",
+                content: data.output,
+              });
+            }
+          })
+          .catch(() => {
+            // Fallback to local simulation if API is unreachable
+            const parts = trimmed.split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+            const handler = TERMINAL_COMMANDS[cmd];
+            if (handler) {
+              addTerminalLine({ type: "output", content: handler(args) });
+            } else {
+              addTerminalLine({
+                type: "error",
+                content: `bash: ${cmd}: command not found`,
+              });
+            }
           });
-        }
       },
 
       setProblems: (problems) => set({ problems }),
@@ -898,11 +920,39 @@ export const useEditorStore = create<EditorStore>()(
         })),
 
       saveCurrentFile: () => {
+        const state = get();
+        const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
+        if (activeTab) {
+          const file = findFileById(state.files, activeTab.fileId);
+          if (file && file.content !== undefined) {
+            // Save to backend
+            fetch(`/api/files`, {
+              method: "GET",
+            })
+              .then((r) => r.json())
+              .then((files: { id: number; path: string }[]) => {
+                const match = files.find((f) => f.path === file.path);
+                if (match) {
+                  fetch(`/api/files/${match.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ content: file.content }),
+                  }).catch(() => {});
+                }
+              })
+              .catch(() => {});
+          }
+        }
         set((state) => ({
           openTabs: state.openTabs.map((t) =>
             t.id === state.activeTabId ? { ...t, isModified: false } : t
           ),
         }));
+      },
+
+      setFilesFromApi: (files) => {
+        // When loading from API, reset tabs since old IDs won't match new API IDs
+        set({ files, openTabs: [], activeTabId: null });
       },
     }),
     {

@@ -36,16 +36,20 @@ A fully-functional VS Code-like code editor optimized for mobile browsers.
 - Menu bar: File, Edit, View, Run with keyboard shortcuts
 - Keyboard shortcuts: ⌘S (save), ⌘B (sidebar), ⌘` (terminal), ⌘⇧F (search), ⌘⇧E (explorer)
 - Drag-to-resize bottom panel (Terminal/Problems/Output)
-- State persistence via localStorage (Zustand persist)
+- State persistence via localStorage (Zustand persist) + real backend sync
+- **Real code execution** via ▶ Run button (JavaScript, TypeScript, Python, Bash)
+- **Real terminal** — shell commands execute on the server
+- **File persistence** — files stored in PostgreSQL, loaded from DB on startup
 
 **Languages supported:** TypeScript, JavaScript, Python, CSS/SCSS, HTML, JSON, Markdown, SQL, Rust, Java, C++, PHP, XML
 
 **Tech:**
 - React + Vite
-- Zustand (state management with localStorage persistence)
+- Zustand (state management with localStorage + PostgreSQL persistence)
 - CodeMirror 6 (editor engine)
 - Tailwind CSS + shadcn/ui
 - Lucide React icons
+- `@workspace/api-client-react` — React Query hooks auto-generated from OpenAPI spec
 
 ## Key Commands
 
@@ -54,5 +58,17 @@ A fully-functional VS Code-like code editor optimized for mobile browsers.
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `curl -s -X POST http://localhost:8080/api/seed` — seed database with default project files (skips if already seeded)
+
+## API Endpoints
+
+- `GET /api/files` — list all files
+- `POST /api/files` — create file or folder
+- `GET /api/files/:id` — get file by ID
+- `PUT /api/files/:id` — update file content/name
+- `DELETE /api/files/:id` — delete file or folder (cascades children)
+- `POST /api/execute` — execute code (JS/TS/Python/Bash) and return stdout/stderr
+- `POST /api/terminal` — run a shell command and return output
+- `POST /api/seed` — seed DB with default project files (idempotent)
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
