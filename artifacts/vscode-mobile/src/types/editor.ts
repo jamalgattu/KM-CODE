@@ -35,7 +35,7 @@ export interface EditorState {
   sidebarVisible: boolean;
   panelVisible: boolean;
   panelHeight: number;
-  activePanel: "terminal" | "problems" | "output" | "search";
+  activePanel: "terminal" | "problems" | "output" | "search" | "preview";
   activeSidePanel: "explorer" | "search" | "git" | "extensions" | "settings";
   searchQuery: string;
   searchResults: SearchResult[];
@@ -91,14 +91,17 @@ export const LANGUAGE_MAP: Record<string, string> = {
   rs: "rust",
   java: "java",
   cpp: "cpp",
-  c: "cpp",
+  c: "c",
   h: "cpp",
   php: "php",
   xml: "xml",
   yaml: "yaml",
   yml: "yaml",
-  sh: "shell",
-  bash: "shell",
+  sh: "bash",
+  bash: "bash",
+  go: "go",
+  rb: "ruby",
+  swift: "swift",
   txt: "plaintext",
 };
 
@@ -130,6 +133,9 @@ export function getFileIcon(name: string): { icon: string; color: string } {
     yaml: { icon: "yaml", color: "#cb171e" },
     yml: { icon: "yaml", color: "#cb171e" },
     xml: { icon: "xml", color: "#f1662a" },
+    go: { icon: "go", color: "#00add8" },
+    rb: { icon: "rb", color: "#cc342d" },
+    swift: { icon: "swift", color: "#fa7343" },
     txt: { icon: "txt", color: "#888" },
     gitignore: { icon: "git", color: "#f54d27" },
   };

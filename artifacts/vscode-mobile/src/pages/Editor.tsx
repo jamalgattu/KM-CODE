@@ -7,6 +7,7 @@ import { TabBar } from "@/components/TabBar/TabBar";
 import { EditorArea } from "@/components/Editor/EditorArea";
 import { BottomPanel } from "@/components/Panel/BottomPanel";
 import { StatusBar } from "@/components/StatusBar/StatusBar";
+import { MobileSymbolBar } from "@/components/MobileSymbolBar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
 
@@ -17,14 +18,12 @@ export function EditorPage() {
   const {
     theme, sidebarVisible, openFile, saveCurrentFile,
     togglePanel, setActivePanel, panelVisible, toggleSidebar,
-    setActiveSidePanel, files,
+    setActiveSidePanel, files, executeCommand,
   } = useEditorStore();
   const isMobile = useIsMobile();
 
-  // Wire up backend — loads files from DB on mount, seeds if empty
   useBackendSync();
 
-  // Apply theme to html element
   useEffect(() => {
     const root = document.documentElement;
     if (theme === "dark") {
@@ -34,7 +33,6 @@ export function EditorPage() {
     }
   }, [theme]);
 
-  // Open first file whenever tabs become empty (on mount or after API sync clears tabs)
   const { openTabs } = useEditorStore();
   useEffect(() => {
     if (openTabs.length === 0 && files.length > 0) {
@@ -53,7 +51,6 @@ export function EditorPage() {
     }
   }, [openTabs.length, files]);
 
-  // Keyboard shortcuts
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
@@ -69,6 +66,12 @@ export function EditorPage() {
         e.preventDefault();
         setActivePanel("terminal");
         if (!panelVisible) togglePanel();
+      }
+      if (meta && e.key === "Enter") {
+        e.preventDefault();
+        setActivePanel("terminal");
+        if (!panelVisible) togglePanel();
+        executeCommand("run");
       }
       if (meta && e.shiftKey && e.key === "E") {
         e.preventDefault();
@@ -86,7 +89,7 @@ export function EditorPage() {
         if (!panelVisible) togglePanel();
       }
     },
-    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible]
+    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible, executeCommand]
   );
 
   useEffect(() => {
@@ -98,15 +101,11 @@ export function EditorPage() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background" data-testid="editor-page">
-      {/* Title bar */}
       <TitleBar />
 
-      {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Activity bar */}
         <ActivityBar />
 
-        {/* Sidebar */}
         {sidebarVisible && (
           <div
             className="h-full bg-sidebar border-r border-sidebar-border shrink-0 overflow-hidden sidebar-transition"
@@ -116,22 +115,20 @@ export function EditorPage() {
           </div>
         )}
 
-        {/* Editor + Panel */}
         <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Tab bar */}
           <TabBar />
 
-          {/* Editor area */}
           <div className="flex-1 overflow-hidden">
             <EditorArea />
           </div>
 
-          {/* Bottom panel */}
+          {/* Mobile symbol bar sits between editor and panel */}
+          <MobileSymbolBar />
+
           <BottomPanel />
         </div>
       </div>
 
-      {/* Status bar */}
       <StatusBar />
     </div>
   );

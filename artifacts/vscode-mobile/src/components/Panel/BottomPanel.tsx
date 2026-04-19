@@ -1,23 +1,28 @@
-import { useRef, useEffect, useState, useCallback } from "react";
-import { X, Minus, TerminalSquare, AlertTriangle, Info, FileText } from "lucide-react";
+import { useRef, useCallback } from "react";
+import { X, TerminalSquare, AlertTriangle, FileText, Globe } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { Terminal } from "./Terminal";
 import { ProblemsPanel } from "./ProblemsPanel";
 import { OutputPanel } from "./OutputPanel";
+import { HTMLPreview } from "./HTMLPreview";
 import { cn } from "@/lib/utils";
 
 const PANEL_TABS = [
   { id: "terminal" as const, label: "Terminal", icon: TerminalSquare },
   { id: "problems" as const, label: "Problems", icon: AlertTriangle },
   { id: "output" as const, label: "Output", icon: FileText },
+  { id: "preview" as const, label: "Preview", icon: Globe },
 ];
 
 export function BottomPanel() {
-  const { panelVisible, panelHeight, setPanelHeight, togglePanel, activePanel, setActivePanel, problems } =
+  const { panelVisible, panelHeight, setPanelHeight, togglePanel, activePanel, setActivePanel, problems, openTabs, activeTabId } =
     useEditorStore();
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const errorCount = problems.filter((p) => p.severity === "error").length;
   const warnCount = problems.filter((p) => p.severity === "warning").length;
+
+  const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const isHTMLFile = activeTab?.language === "html";
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -69,6 +74,11 @@ export function BottomPanel() {
 
   if (!panelVisible) return null;
 
+  const visibleTabs = PANEL_TABS.filter((tab) => {
+    if (tab.id === "preview") return isHTMLFile;
+    return true;
+  });
+
   return (
     <div
       className="flex flex-col border-t border-border bg-background"
@@ -85,10 +95,10 @@ export function BottomPanel() {
 
       {/* Panel tabs */}
       <div className="flex items-center border-b border-border shrink-0 bg-muted/30">
-        {PANEL_TABS.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setActivePanel(id)}
+            onClick={() => setActivePanel(id as any)}
             className={cn(
               "flex items-center gap-1.5 px-3 h-8 text-xs cursor-pointer transition-colors relative",
               activePanel === id
@@ -125,6 +135,7 @@ export function BottomPanel() {
         {activePanel === "terminal" && <Terminal />}
         {activePanel === "problems" && <ProblemsPanel />}
         {activePanel === "output" && <OutputPanel />}
+        {(activePanel as string) === "preview" && <HTMLPreview />}
       </div>
     </div>
   );

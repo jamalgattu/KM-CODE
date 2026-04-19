@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Save, Play, TerminalSquare, RotateCcw, Menu, Code2, Keyboard, ChevronDown } from "lucide-react";
+import { Save, Play, TerminalSquare, Code2, Loader2 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
+import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 
 const MENU_ITEMS = {
   File: [
@@ -11,6 +12,8 @@ const MENU_ITEMS = {
     { label: "Save All", shortcut: "⌘⇧S" },
     { type: "separator" },
     { label: "Auto Save", shortcut: "", toggle: "autoSave" },
+    { type: "separator" },
+    { label: "Download File", shortcut: "" },
   ],
   Edit: [
     { label: "Undo", shortcut: "⌘Z" },
@@ -29,6 +32,7 @@ const MENU_ITEMS = {
     { type: "separator" },
     { label: "Terminal", shortcut: "⌃`" },
     { label: "Problems", shortcut: "⌘⇧M" },
+    { label: "Preview", shortcut: "" },
     { type: "separator" },
     { label: "Toggle Sidebar", shortcut: "⌘B" },
     { label: "Toggle Theme", shortcut: "" },
@@ -36,20 +40,52 @@ const MENU_ITEMS = {
   Run: [
     { label: "Run Code", shortcut: "⌘⏎" },
     { label: "Stop", shortcut: "⌘." },
-    { type: "separator" },
-    { label: "Add Configuration", shortcut: "" },
   ],
 };
 
 export function TitleBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
   const {
     saveCurrentFile, togglePanel, setActivePanel, panelVisible,
     toggleSidebar, setActiveSidePanel, autoSave, setAutoSave,
-    setTheme, theme, openTabs, activeTabId, executeCommand,
+    setTheme, theme, openTabs, activeTabId, executeCommand, files,
+    addTerminalLine,
   } = useEditorStore();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
+
+  const getFileContent = (fileId: string): string => {
+    const findContent = (nodes: typeof files): string => {
+      for (const node of nodes) {
+        if (node.id === fileId) return node.content || "";
+        if (node.children) {
+          const found = findContent(node.children);
+          if (found !== "") return found;
+        }
+      }
+      return "";
+    };
+    return findContent(files);
+  };
+
+  const handleDownload = () => {
+    if (!activeTab) return;
+    const content = getFileContent(activeTab.fileId);
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = activeTab.fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRunCode = () => {
+    setActivePanel("terminal");
+    if (!panelVisible) togglePanel();
+    executeCommand("run");
+  };
 
   const handleMenuAction = (label: string) => {
     setOpenMenu(null);
@@ -57,12 +93,17 @@ export function TitleBar() {
       case "Save": saveCurrentFile(); break;
       case "Save All": openTabs.forEach(() => saveCurrentFile()); break;
       case "Auto Save": setAutoSave(!autoSave); break;
+      case "Download File": handleDownload(); break;
       case "Terminal":
         setActivePanel("terminal");
         if (!panelVisible) togglePanel();
         break;
       case "Problems":
         setActivePanel("problems");
+        if (!panelVisible) togglePanel();
+        break;
+      case "Preview":
+        setActivePanel("preview" as any);
         if (!panelVisible) togglePanel();
         break;
       case "Toggle Sidebar": toggleSidebar(); break;
@@ -72,9 +113,7 @@ export function TitleBar() {
       case "Source Control": setActiveSidePanel("git"); break;
       case "Extensions": setActiveSidePanel("extensions"); break;
       case "Run Code":
-        setActivePanel("terminal");
-        if (!panelVisible) togglePanel();
-        if (activeTab) executeCommand(`node ${activeTab.fileName}`);
+        handleRunCode();
         break;
     }
   };
@@ -104,10 +143,7 @@ export function TitleBar() {
             </button>
             {openMenu === menuName && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setOpenMenu(null)}
-                />
+                <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(null)} />
                 <div className="absolute left-0 top-full z-50 bg-popover border border-popover-border rounded shadow-lg min-w-[200px]">
                   {(MENU_ITEMS as Record<string, Array<{ label?: string; shortcut?: string; type?: string; toggle?: string }>>)[menuName].map((item, idx) => {
                     if (item.type === "separator") {
@@ -119,7 +155,6 @@ export function TitleBar() {
                         key={idx}
                         onClick={() => handleMenuAction(item.label!)}
                         className="flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-sidebar-accent text-foreground"
-                        data-testid={`menu-item-${item.label?.toLowerCase().replace(/\s+/g, "-")}`}
                       >
                         <span className="flex items-center gap-2">
                           {item.toggle && (
@@ -143,12 +178,13 @@ export function TitleBar() {
       {/* Center - File name */}
       <div className="flex-1 flex items-center justify-center">
         <span className="text-xs text-muted-foreground">
-          {activeTab ? activeTab.fileName : "Code Editor"}
+          {activeTab ? activeTab.fileName : "KM Code Editor"}
         </span>
       </div>
 
       {/* Right actions */}
       <div className="flex items-center gap-0.5 px-2">
+        <KeyboardShortcutsDialog />
         <button
           onClick={saveCurrentFile}
           className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
@@ -158,13 +194,9 @@ export function TitleBar() {
           <Save size={15} />
         </button>
         <button
-          onClick={() => {
-            setActivePanel("terminal");
-            if (!panelVisible) togglePanel();
-            if (activeTab) executeCommand(`node ${activeTab.fileName}`);
-          }}
+          onClick={handleRunCode}
           className="p-1.5 rounded text-muted-foreground hover:text-green-500 hover:bg-sidebar-accent transition-colors"
-          title="Run"
+          title="Run (⌘Enter)"
           data-testid="run-button"
         >
           <Play size={15} />

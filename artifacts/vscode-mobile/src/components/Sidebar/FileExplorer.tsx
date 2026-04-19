@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, Plus, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw } from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { FileNode } from "@/types/editor";
 import { cn } from "@/lib/utils";
+import { NewFileDialog } from "@/components/NewFileDialog";
 
 interface FileTreeItemProps {
   node: FileNode;
@@ -19,6 +20,7 @@ function getExtColor(name: string): string {
     json: "#f0c675", md: "#083fa1", sql: "#e38c00", rs: "#dea584",
     java: "#ed8b00", cpp: "#659bd3", c: "#659bd3", php: "#777bb4",
     sh: "#89e051", yaml: "#cb171e", yml: "#cb171e", xml: "#f1662a",
+    rb: "#cc342d", go: "#00add8", swift: "#fa7343",
   };
   return colors[ext] || "#888";
 }
@@ -26,10 +28,9 @@ function getExtColor(name: string): string {
 function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(node.name);
-  const [showMenu, setShowMenu] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
 
-  const { openFile, toggleFolder, deleteFile, renameFile, addFile } = useEditorStore();
+  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent } = useEditorStore();
 
   const handleClick = () => {
     if (node.type === "folder") {
@@ -45,7 +46,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
       renameFile(node.id, renameName.trim());
     }
     setIsRenaming(false);
-    setShowMenu(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -70,7 +70,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
         onClick={handleClick}
         onContextMenu={(e) => {
           e.preventDefault();
-          setShowMenu(!showMenu);
           onSelect(node.id);
         }}
         data-testid={`file-item-${node.id}`}
@@ -125,32 +124,41 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
         <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
           {node.type === "folder" && (
             <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const name = prompt("File name:");
-                  if (name) addFile(node.id, name, "file");
+              <NewFileDialog
+                defaultType="file"
+                onConfirm={(name, content) => {
+                  const id = addFile(node.id, name, "file");
+                  if (content && id) {
+                    setTimeout(() => updateFileContent(id, content), 50);
+                  }
                   if (!node.isOpen) toggleFolder(node.id);
                 }}
-                className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-                title="New File"
-                data-testid={`new-file-${node.id}`}
-              >
-                <FilePlus size={13} />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const name = prompt("Folder name:");
-                  if (name) addFile(node.id, name, "folder");
+                trigger={
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+                    title="New File"
+                  >
+                    <FilePlus size={13} />
+                  </button>
+                }
+              />
+              <NewFileDialog
+                defaultType="folder"
+                onConfirm={(name, _, type) => {
+                  addFile(node.id, name, type);
                   if (!node.isOpen) toggleFolder(node.id);
                 }}
-                className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
-                title="New Folder"
-                data-testid={`new-folder-${node.id}`}
-              >
-                <FolderPlus size={13} />
-              </button>
+                trigger={
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+                    title="New Folder"
+                  >
+                    <FolderPlus size={13} />
+                  </button>
+                }
+              />
             </>
           )}
           <button
@@ -162,7 +170,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
             }}
             className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
             title="Rename"
-            data-testid={`rename-${node.id}`}
           >
             <Edit2 size={13} />
           </button>
@@ -175,7 +182,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
             }}
             className="p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
             title="Delete"
-            data-testid={`delete-${node.id}`}
           >
             <Trash2 size={13} />
           </button>
@@ -209,7 +215,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
 
 export function FileExplorer() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { files, addFile } = useEditorStore();
+  const { files, addFile, updateFileContent } = useEditorStore();
 
   const rootNode = files[0];
 
@@ -220,28 +226,41 @@ export function FileExplorer() {
           Explorer
         </span>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => {
-              const name = prompt("File name:");
-              if (name && rootNode) addFile(rootNode.id, name, "file");
+          <NewFileDialog
+            defaultType="file"
+            onConfirm={(name, content, type) => {
+              if (rootNode) {
+                const id = addFile(rootNode.id, name, type);
+                if (content && id) {
+                  setTimeout(() => updateFileContent(id, content), 50);
+                }
+              }
             }}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-            title="New File"
-            data-testid="explorer-new-file"
-          >
-            <FilePlus size={15} />
-          </button>
-          <button
-            onClick={() => {
-              const name = prompt("Folder name:");
-              if (name && rootNode) addFile(rootNode.id, name, "folder");
+            trigger={
+              <button
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+                title="New File"
+                data-testid="explorer-new-file"
+              >
+                <FilePlus size={15} />
+              </button>
+            }
+          />
+          <NewFileDialog
+            defaultType="folder"
+            onConfirm={(name, _, type) => {
+              if (rootNode) addFile(rootNode.id, name, type);
             }}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-            title="New Folder"
-            data-testid="explorer-new-folder"
-          >
-            <FolderPlus size={15} />
-          </button>
+            trigger={
+              <button
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+                title="New Folder"
+                data-testid="explorer-new-folder"
+              >
+                <FolderPlus size={15} />
+              </button>
+            }
+          />
           <button
             className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
             title="Refresh"

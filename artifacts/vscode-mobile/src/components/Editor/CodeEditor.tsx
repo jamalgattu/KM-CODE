@@ -1,8 +1,14 @@
 import { useEffect, useRef, useCallback } from "react";
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, rectangularSelection, crosshairCursor, dropCursor } from "@codemirror/view";
+import {
+  EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
+  drawSelection, rectangularSelection, crosshairCursor, dropCursor,
+} from "@codemirror/view";
 import { EditorState, StateEffect } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { indentOnInput, bracketMatching, foldGutter, syntaxHighlighting, defaultHighlightStyle, StreamLanguage } from "@codemirror/language";
+import {
+  indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
+  defaultHighlightStyle,
+} from "@codemirror/language";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { lintKeymap } from "@codemirror/lint";
@@ -20,12 +26,14 @@ import { php } from "@codemirror/lang-php";
 import { xml } from "@codemirror/lang-xml";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { useEditorStore } from "@/store/editorStore";
+import { setCurrentEditorView } from "@/lib/editorView";
 
 interface CodeEditorProps {
   fileId: string;
   content: string;
   language: string;
   onChange: (content: string) => void;
+  onCursorChange?: (line: number, col: number) => void;
 }
 
 function getLanguageExtension(language: string) {
@@ -62,11 +70,11 @@ function getLanguageExtension(language: string) {
   }
 }
 
-export function CodeEditor({ fileId, content, language, onChange }: CodeEditorProps) {
+export function CodeEditor({ fileId, content, language, onChange, onCursorChange }: CodeEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const contentRef = useRef(content);
-  const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers } = useEditorStore();
+  const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers, fontFamily } = useEditorStore();
 
   const getThemeExtension = useCallback(() => {
     if (theme === "dark") return oneDark;
@@ -75,7 +83,7 @@ export function CodeEditor({ fileId, content, language, onChange }: CodeEditorPr
       "&": {
         backgroundColor: "hsl(220 14% 98%)",
         color: "hsl(220 14% 15%)",
-        fontFamily: "JetBrains Mono, Fira Code, Cascadia Code, Consolas, monospace",
+        fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
       },
       ".cm-content": { caretColor: "#007acc" },
       "&.cm-focused .cm-cursor": { borderLeftColor: "#007acc" },
@@ -92,7 +100,7 @@ export function CodeEditor({ fileId, content, language, onChange }: CodeEditorPr
       ".cm-searchMatch": { backgroundColor: "#ffd70040", outline: "1px solid #ffd700" },
       ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#ffd70080" },
     });
-  }, [theme]);
+  }, [theme, fontFamily]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -123,19 +131,28 @@ export function CodeEditor({ fileId, content, language, onChange }: CodeEditorPr
         indentWithTab,
       ]),
       EditorState.tabSize.of(tabSize),
-      EditorView.lineWrapping,
+      wordWrap ? EditorView.lineWrapping : [],
       getThemeExtension(),
       showLineNumbers ? lineNumbers() : [],
-      !wordWrap ? [] : [],
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           const newContent = update.state.doc.toString();
           contentRef.current = newContent;
           onChange(newContent);
         }
+        if (update.selectionSet || update.docChanged) {
+          if (onCursorChange) {
+            const pos = update.state.selection.main.head;
+            const line = update.state.doc.lineAt(pos);
+            onCursorChange(line.number, pos - line.from + 1);
+          }
+        }
       }),
       EditorView.theme({
-        "&": { fontSize: `${fontSize}px` },
+        "&": {
+          fontSize: `${fontSize}px`,
+          fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
+        },
       }),
       langExt,
     ].flat();
@@ -151,14 +168,15 @@ export function CodeEditor({ fileId, content, language, onChange }: CodeEditorPr
     });
 
     viewRef.current = view;
+    setCurrentEditorView(view);
 
     return () => {
+      setCurrentEditorView(null);
       view.destroy();
       viewRef.current = null;
     };
   }, [fileId, language]);
 
-  // Update content when switching files
   useEffect(() => {
     if (!viewRef.current || content === contentRef.current) return;
     contentRef.current = content;
@@ -171,15 +189,14 @@ export function CodeEditor({ fileId, content, language, onChange }: CodeEditorPr
     });
   }, [fileId, content]);
 
-  // Update font size
   useEffect(() => {
     if (!viewRef.current) return;
     viewRef.current.dispatch({
       effects: StateEffect.reconfigure.of([
-        EditorView.theme({ "&": { fontSize: `${fontSize}px` } }),
+        EditorView.theme({ "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace` } }),
       ]),
     });
-  }, [fontSize]);
+  }, [fontSize, fontFamily]);
 
   return (
     <div

@@ -9,23 +9,40 @@ const DEFAULT_FILES: FileNode[] = [
     type: "file",
     path: "/welcome.md",
     language: "markdown",
-    content: `# Welcome to Su Zai Zai Code! ⚡
+    content: `# Welcome to KM Code! ⚡
 
 A free mobile-first code editor for everyone.
 
 ## Getting Started
-- Click the **+** button to create a new file
-- Hit **run** in terminal to execute your code
-- Sign in with Google to save files to cloud
+1. Click the **+** button to create a new file (with starter templates!)
+2. Select a language and start coding
+3. Hit the **Run** button or type \`run\` in the terminal to execute your code
+4. Sign in with Google to save files to cloud
 
 ## Supported Languages
-JavaScript, TypeScript, Python, Java, C++,
-C, Rust, Go, PHP, Ruby, Swift, Bash
+JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
 
-## Shortcuts
-- Ctrl+S → Save
-- Ctrl+B → Toggle sidebar
-- Ctrl+\` → Open terminal
+## New Features
+- **Templates** — create files with pre-filled starter code
+- **HTML Preview** — live preview for HTML files in the Preview panel
+- **Mobile Symbol Bar** — quick-insert coding symbols on mobile
+- **Download** — save any file to your device
+- **Keyboard Shortcuts** — click the keyboard icon in the toolbar
+- **Copy Code** — copy entire file to clipboard
+
+## Keyboard Shortcuts
+- \`Ctrl+S\` → Save file
+- \`Ctrl+Enter\` → Run current file
+- \`Ctrl+B\` → Toggle sidebar
+- \`Ctrl+\`\` → Open terminal
+- \`Ctrl+Shift+E\` → Explorer
+- \`Ctrl+Shift+F\` → Search
+
+## Terminal Commands
+- \`run\` → execute current file
+- \`clear\` → clear terminal
+- \`help\` → show help
+- \`ls\` → list files
 
 Happy coding! 🚀
 `,
@@ -39,7 +56,6 @@ function generateId(): string {
 interface EditorStore extends EditorState {
   terminalLines: TerminalLine[];
 
-  // File operations
   addFile: (parentId: string, name: string, type: "file" | "folder") => string;
   deleteFile: (fileId: string) => void;
   renameFile: (fileId: string, newName: string) => void;
@@ -48,7 +64,6 @@ interface EditorStore extends EditorState {
   getFileById: (fileId: string) => FileNode | null;
   getAllFiles: () => FileNode[];
 
-  // Tab operations
   openFile: (fileId: string) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
@@ -56,7 +71,6 @@ interface EditorStore extends EditorState {
   closeOtherTabs: (tabId: string) => void;
   closeTabsToRight: (tabId: string) => void;
 
-  // Editor settings
   setTheme: (theme: "dark" | "light") => void;
   setFontSize: (size: number) => void;
   setTabSize: (size: number) => void;
@@ -66,7 +80,6 @@ interface EditorStore extends EditorState {
   setAutoSave: (autoSave: boolean) => void;
   setFontFamily: (font: string) => void;
 
-  // UI state
   toggleSidebar: () => void;
   setSidebarVisible: (visible: boolean) => void;
   togglePanel: () => void;
@@ -74,24 +87,18 @@ interface EditorStore extends EditorState {
   setActivePanel: (panel: EditorState["activePanel"]) => void;
   setActiveSidePanel: (panel: EditorState["activeSidePanel"]) => void;
 
-  // Search
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: SearchResult[]) => void;
   searchInFiles: (query: string) => void;
 
-  // Terminal
   addTerminalLine: (line: Omit<TerminalLine, "id" | "timestamp">) => void;
   clearTerminal: () => void;
   executeCommand: (command: string) => void;
 
-  // Problems
   setProblems: (problems: Problem[]) => void;
   addProblem: (problem: Omit<Problem, "id">) => void;
 
-  // Save
   saveCurrentFile: () => void;
-
-  // Backend sync
   setFilesFromApi: (files: FileNode[]) => void;
 }
 
@@ -129,7 +136,7 @@ function findParentAndRemove(nodes: FileNode[], id: string): boolean {
 }
 
 const PISTON_URL = "https://emkc.org/api/v2/piston";
-const LANGUAGE_MAP: Record<string, { language: string; version: string; filename: string }> = {
+const LANGUAGE_RUNTIME: Record<string, { language: string; version: string; filename: string }> = {
   javascript: { language: "javascript", version: "18.15.0", filename: "index.js"   },
   typescript: { language: "typescript", version: "5.0.3",   filename: "index.ts"   },
   python:     { language: "python",     version: "3.10.0",  filename: "main.py"    },
@@ -138,6 +145,8 @@ const LANGUAGE_MAP: Record<string, { language: string; version: string; filename
   c:          { language: "c",          version: "10.2.0",  filename: "main.c"     },
   rust:       { language: "rust",       version: "1.50.0",  filename: "main.rs"    },
   bash:       { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
+  sh:         { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
+  shell:      { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
   php:        { language: "php",        version: "8.2.3",   filename: "index.php"  },
   go:         { language: "go",         version: "1.16.2",  filename: "main.go"    },
   ruby:       { language: "ruby",       version: "3.0.1",   filename: "main.rb"    },
@@ -160,7 +169,7 @@ export const useEditorStore = create<EditorStore>()(
       fontFamily: "JetBrains Mono",
       sidebarVisible: true,
       panelVisible: false,
-      panelHeight: 200,
+      panelHeight: 220,
       activePanel: "terminal",
       activeSidePanel: "explorer",
       searchQuery: "",
@@ -171,7 +180,7 @@ export const useEditorStore = create<EditorStore>()(
         {
           id: "welcome",
           type: "info",
-          content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
+          content: "⚡ KM Code Terminal — type 'help' for commands.",
           timestamp: Date.now(),
         },
       ],
@@ -199,7 +208,6 @@ export const useEditorStore = create<EditorStore>()(
               isOpen: type === "folder" ? false : undefined,
             });
           } else {
-            // Add to root if no parent found
             const path = `/${name}`;
             const lang = getLanguageFromPath(path);
             files.push({
@@ -410,7 +418,7 @@ export const useEditorStore = create<EditorStore>()(
             {
               id: generateId(),
               type: "info",
-              content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
+              content: "⚡ KM Code Terminal — type 'help' for commands.",
               timestamp: Date.now(),
             },
           ],
@@ -431,14 +439,16 @@ export const useEditorStore = create<EditorStore>()(
         if (trimmed === "help") {
           addTerminalLine({
             type: "output",
-            content: `⚡ Su Zai Zai Code Terminal
+            content: `⚡ KM Code Terminal
 ─────────────────────────────
-  run         → execute current file
+  run         → execute current file via Piston
   clear       → clear terminal
   help        → show this help
   ls          → list open files
   date        → show current date/time
-─────────────────────────────`,
+─────────────────────────────
+Supported languages: JS, TS, Python, Java, C++, C,
+  Rust, Go, PHP, Ruby, Swift, Bash`,
           });
           return;
         }
@@ -476,13 +486,13 @@ export const useEditorStore = create<EditorStore>()(
             return;
           }
 
-          const lang = file.language ?? "javascript";
-          const runtime = LANGUAGE_MAP[lang];
+          const lang = (file.language ?? "javascript").toLowerCase();
+          const runtime = LANGUAGE_RUNTIME[lang];
 
           if (!runtime) {
             addTerminalLine({
               type: "error",
-              content: `Language "${lang}" is not supported for execution.\nSupported: ${Object.keys(LANGUAGE_MAP).join(", ")}`,
+              content: `Language "${lang}" is not supported for execution.\nSupported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
             });
             return;
           }
@@ -543,7 +553,6 @@ export const useEditorStore = create<EditorStore>()(
           return;
         }
 
-        // Unknown command
         const parts = trimmed.split(/\s+/);
         addTerminalLine({
           type: "error",
@@ -565,7 +574,7 @@ export const useEditorStore = create<EditorStore>()(
           if (file && file.content !== undefined) {
             try {
               localStorage.setItem(
-                `szz-file-${file.path}`,
+                `km-file-${file.path}`,
                 JSON.stringify({
                   content: file.content,
                   savedAt: Date.now(),
@@ -586,7 +595,7 @@ export const useEditorStore = create<EditorStore>()(
       },
     }),
     {
-      name: "su-zai-zai-state",
+      name: "km-code-state",
       partialize: (state) => ({
         files: state.files,
         openTabs: state.openTabs,

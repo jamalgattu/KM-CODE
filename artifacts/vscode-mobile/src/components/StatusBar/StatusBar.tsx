@@ -1,4 +1,4 @@
-import { GitBranch, AlertCircle, AlertTriangle, CheckCircle, Loader, Bell, Settings, TerminalSquare } from "lucide-react";
+import { GitBranch, AlertCircle, AlertTriangle, CheckCircle, Bell, TerminalSquare, Sun, Moon, Download } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 
 export function StatusBar() {
@@ -14,15 +14,42 @@ export function StatusBar() {
     togglePanel,
     panelVisible,
     autoSave,
+    files,
   } = useEditorStore();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const errors = problems.filter((p) => p.severity === "error").length;
   const warnings = problems.filter((p) => p.severity === "warning").length;
 
+  const getFileContent = (fileId: string): string => {
+    const findContent = (nodes: typeof files): string => {
+      for (const node of nodes) {
+        if (node.id === fileId) return node.content || "";
+        if (node.children) {
+          const found = findContent(node.children);
+          if (found !== "") return found;
+        }
+      }
+      return "";
+    };
+    return findContent(files);
+  };
+
+  const handleDownload = () => {
+    if (!activeTab) return;
+    const content = getFileContent(activeTab.fileId);
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = activeTab.fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
-      className="flex items-center justify-between h-6 px-2 text-white text-xs shrink-0"
+      className="flex items-center justify-between h-6 px-2 text-white text-xs shrink-0 select-none"
       style={{ backgroundColor: "hsl(var(--status-bar-bg))" }}
       data-testid="status-bar"
     >
@@ -58,18 +85,25 @@ export function StatusBar() {
         {autoSave && (
           <span className="flex items-center gap-0.5 opacity-70 text-[10px]">
             <CheckCircle size={11} />
-            Auto Save
+            <span className="hidden sm:inline">Auto Save</span>
           </span>
         )}
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {activeTab && (
           <>
-            <span className="opacity-80">{activeTab.language}</span>
-            <span className="opacity-80">Spaces: {tabSize}</span>
-            <span className="opacity-80">UTF-8</span>
+            <span className="opacity-80 capitalize hidden sm:block">{activeTab.language}</span>
+            <span className="opacity-80 hidden sm:block">Spaces: {tabSize}</span>
+            <span className="opacity-80 hidden md:block">UTF-8</span>
+            <button
+              onClick={handleDownload}
+              className="hover:bg-white/10 px-1 rounded transition-colors"
+              title={`Download ${activeTab.fileName}`}
+            >
+              <Download size={12} />
+            </button>
           </>
         )}
 
@@ -87,11 +121,12 @@ export function StatusBar() {
 
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="hover:bg-white/10 px-1 rounded transition-colors capitalize"
+          className="hover:bg-white/10 px-1 rounded transition-colors flex items-center gap-1"
           title="Toggle Theme"
           data-testid="status-theme"
         >
-          {theme}
+          {theme === "dark" ? <Moon size={12} /> : <Sun size={12} />}
+          <span className="hidden sm:inline capitalize">{theme}</span>
         </button>
 
         <button
