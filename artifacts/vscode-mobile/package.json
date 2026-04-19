@@ -74,7 +74,7 @@
     "wouter": "^3.3.5",
     "zod": "catalog:"
   },
-  "dependencies" {
+  "dependencies": {
 "@supabase/supabase-js": "^2.45.0",
     "@codemirror/autocomplete": "^6.20.1",
     "@codemirror/commands": "^6.10.3",
