@@ -4,422 +4,31 @@ import { EditorState, FileNode, Tab, TerminalLine, SearchResult, Problem, getLan
 
 const DEFAULT_FILES: FileNode[] = [
   {
-    id: "root",
-    name: "my-project",
-    type: "folder",
-    path: "/my-project",
-    isOpen: true,
-    children: [
-      {
-        id: "src",
-        name: "src",
-        type: "folder",
-        path: "/my-project/src",
-        isOpen: true,
-        children: [
-          {
-            id: "main-ts",
-            name: "main.ts",
-            type: "file",
-            path: "/my-project/src/main.ts",
-            language: "typescript",
-            content: `// Welcome to Code Editor - VS Code for Mobile!
-// Start writing your TypeScript code here
+    id: "welcome-file",
+    name: "welcome.md",
+    type: "file",
+    path: "/welcome.md",
+    language: "markdown",
+    content: `# Welcome to Su Zai Zai Code! ⚡
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  createdAt: Date;
-}
-
-class UserService {
-  private users: User[] = [];
-
-  constructor() {
-    this.loadSampleUsers();
-  }
-
-  private loadSampleUsers(): void {
-    this.users = [
-      { id: 1, name: "Alice Johnson", email: "alice@example.com", createdAt: new Date() },
-      { id: 2, name: "Bob Smith", email: "bob@example.com", createdAt: new Date() },
-      { id: 3, name: "Carol White", email: "carol@example.com", createdAt: new Date() },
-    ];
-  }
-
-  getAll(): User[] {
-    return this.users;
-  }
-
-  findById(id: number): User | undefined {
-    return this.users.find(user => user.id === id);
-  }
-
-  create(data: Omit<User, "id" | "createdAt">): User {
-    const user: User = {
-      ...data,
-      id: this.users.length + 1,
-      createdAt: new Date(),
-    };
-    this.users.push(user);
-    return user;
-  }
-
-  update(id: number, data: Partial<User>): User | null {
-    const index = this.users.findIndex(u => u.id === id);
-    if (index === -1) return null;
-    this.users[index] = { ...this.users[index], ...data };
-    return this.users[index];
-  }
-
-  delete(id: number): boolean {
-    const index = this.users.findIndex(u => u.id === id);
-    if (index === -1) return false;
-    this.users.splice(index, 1);
-    return true;
-  }
-}
-
-const service = new UserService();
-const users = service.getAll();
-console.log("Users:", users);
-
-const newUser = service.create({ name: "Dave Brown", email: "dave@example.com" });
-console.log("Created:", newUser);
-`,
-          },
-          {
-            id: "utils-ts",
-            name: "utils.ts",
-            type: "file",
-            path: "/my-project/src/utils.ts",
-            language: "typescript",
-            content: `// Utility functions
-
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-}
-
-export function debounce<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timer: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
-
-export function throttle<T extends (...args: unknown[]) => unknown>(
-  fn: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle = false;
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      fn(...args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
-}
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-export function randomId(): string {
-  return Math.random().toString(36).substring(2, 11);
-}
-
-export function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
-}
-`,
-          },
-        ],
-      },
-      {
-        id: "styles",
-        name: "styles",
-        type: "folder",
-        path: "/my-project/styles",
-        isOpen: false,
-        children: [
-          {
-            id: "main-css",
-            name: "main.css",
-            type: "file",
-            path: "/my-project/styles/main.css",
-            language: "css",
-            content: `/* Main Stylesheet */
-
-:root {
-  --primary: #007acc;
-  --secondary: #1e1e1e;
-  --accent: #569cd6;
-  --bg: #252526;
-  --text: #d4d4d4;
-  --border: #444;
-  --success: #4ec9b0;
-  --warning: #dcdcaa;
-  --error: #f44747;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  font-size: 16px;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.15s ease;
-}
-
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #005f9e;
-}
-
-.card {
-  background: #2d2d2d;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-}
-`,
-          },
-        ],
-      },
-      {
-        id: "index-html",
-        name: "index.html",
-        type: "file",
-        path: "/my-project/index.html",
-        language: "html",
-        content: `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Project</title>
-  <link rel="stylesheet" href="styles/main.css" />
-</head>
-<body>
-  <header class="header">
-    <div class="container">
-      <nav class="nav">
-        <div class="nav-brand">
-          <span>My Project</span>
-        </div>
-        <ul class="nav-links">
-          <li><a href="#home">Home</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section id="home" class="hero">
-      <div class="container">
-        <h1 class="hero-title">Welcome to My Project</h1>
-        <p class="hero-subtitle">Building something amazing</p>
-        <button class="btn btn-primary" onclick="handleClick()">
-          Get Started
-        </button>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <p>&copy; 2024 My Project. All rights reserved.</p>
-    </div>
-  </footer>
-
-  <script type="module" src="src/main.ts"></script>
-</body>
-</html>
-`,
-      },
-      {
-        id: "package-json",
-        name: "package.json",
-        type: "file",
-        path: "/my-project/package.json",
-        language: "json",
-        content: `{
-  "name": "my-project",
-  "version": "1.0.0",
-  "description": "A modern TypeScript project",
-  "main": "dist/main.js",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest",
-    "lint": "eslint src --ext ts,tsx",
-    "format": "prettier --write src/**/*.{ts,tsx}"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vite": "^5.0.0",
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0",
-    "vitest": "^1.0.0"
-  }
-}
-`,
-      },
-      {
-        id: "readme-md",
-        name: "README.md",
-        type: "file",
-        path: "/my-project/README.md",
-        language: "markdown",
-        content: `# My Project
-
-A modern TypeScript project with React and Vite.
+A free mobile-first code editor for everyone.
 
 ## Getting Started
+- Click the **+** button to create a new file
+- Hit **run** in terminal to execute your code
+- Sign in with Google to save files to cloud
 
-### Prerequisites
+## Supported Languages
+JavaScript, TypeScript, Python, Java, C++,
+C, Rust, Go, PHP, Ruby, Swift, Bash
 
-- Node.js >= 18
-- pnpm >= 8
+## Shortcuts
+- Ctrl+S → Save
+- Ctrl+B → Toggle sidebar
+- Ctrl+\` → Open terminal
 
-### Installation
-
-\`\`\`bash
-pnpm install
-\`\`\`
-
-### Development
-
-\`\`\`bash
-pnpm dev
-\`\`\`
-
-Opens the app at [http://localhost:5173](http://localhost:5173).
-
-### Build
-
-\`\`\`bash
-pnpm build
-\`\`\`
-
-### Testing
-
-\`\`\`bash
-pnpm test
-\`\`\`
-
-## Project Structure
-
-\`\`\`
-my-project/
-├── src/
-│   ├── main.ts       # Entry point
-│   └── utils.ts      # Utility functions
-├── styles/
-│   └── main.css      # Main stylesheet
-├── index.html        # HTML entry
-├── package.json
-└── README.md
-\`\`\`
-
-## License
-
-MIT
+Happy coding! 🚀
 `,
-      },
-      {
-        id: "gitignore",
-        name: ".gitignore",
-        type: "file",
-        path: "/my-project/.gitignore",
-        language: "plaintext",
-        content: `# Dependencies
-node_modules/
-.pnpm-store/
-
-# Build outputs
-dist/
-build/
-.vite/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDE files
-.vscode/settings.json
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Testing
-coverage/
-
-# TypeScript
-*.tsbuildinfo
-`,
-      },
-    ],
   },
 ];
 
@@ -519,94 +128,20 @@ function findParentAndRemove(nodes: FileNode[], id: string): boolean {
   return false;
 }
 
-function buildPath(nodes: FileNode[], id: string, parentPath = ""): string {
-  for (const node of nodes) {
-    if (node.id === id) return `${parentPath}/${node.name}`;
-    if (node.children) {
-      const found = buildPath(node.children, id, `${parentPath}/${node.name}`);
-      if (found) return found;
-    }
-  }
-  return "";
-}
-
-const TERMINAL_COMMANDS: Record<string, (args: string[]) => string> = {
-  help: () =>
-    `Available commands:
-  help          Show this help message
-  ls            List files in current directory  
-  pwd           Print working directory
-  echo [text]   Print text to terminal
-  date          Show current date and time
-  clear         Clear terminal
-  node -v       Show Node.js version
-  tsc --version Show TypeScript version
-  git status    Show git status
-  git log       Show git log
-  npm run dev   Start development server
-  npm run build Build the project
-  npm test      Run tests`,
-  ls: () =>
-    `index.html    package.json  README.md     .gitignore
-src/          styles/`,
-  pwd: () => "/my-project",
-  date: () => new Date().toString(),
-  node: (args) =>
-    args.includes("-v") || args.includes("--version") ? "v20.11.0" : "Usage: node [script]",
-  tsc: (args) =>
-    args.includes("--version") || args.includes("-v")
-      ? "Version 5.3.3"
-      : "TypeScript compilation successful.",
-  git: (args) => {
-    if (args[0] === "status")
-      return `On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  
-        modified:   src/main.ts
-        modified:   styles/main.css
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-
-no changes added to commit`;
-    if (args[0] === "log")
-      return `commit a3f7d2e (HEAD -> main, origin/main)
-Author: Developer <dev@example.com>
-Date:   ${new Date().toDateString()}
-
-    feat: add user service with CRUD operations
-
-commit b1c4a9f
-Author: Developer <dev@example.com>
-Date:   Sat Apr 15 10:00:00 2024 +0000
-
-    initial commit`;
-    return `git: '${args[0]}' is not a git command.`;
-  },
-  npm: (args) => {
-    if (args[0] === "run" && args[1] === "dev")
-      return `  VITE v5.0.0  ready in 432 ms
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.1.1:5173/`;
-    if (args[0] === "run" && args[1] === "build")
-      return `vite v5.0.0 building for production...
-✓ 42 modules transformed.
-dist/index.html        1.24 kB │ gzip: 0.62 kB
-dist/assets/index.js   87.32 kB │ gzip: 32.41 kB
-✓ built in 1.24s`;
-    if (args[0] === "test")
-      return `✓ src/utils.test.ts (4 tests) 12ms
-✓ src/service.test.ts (8 tests) 23ms
- 
-Test Files  2 passed (2)
-     Tests  12 passed (12)
-  Duration  38ms`;
-    return `npm: unknown command "${args.join(" ")}"`;
-  },
-  echo: (args) => args.join(" "),
+const PISTON_URL = "https://emkc.org/api/v2/piston";
+const LANGUAGE_MAP: Record<string, { language: string; version: string; filename: string }> = {
+  javascript: { language: "javascript", version: "18.15.0", filename: "index.js"   },
+  typescript: { language: "typescript", version: "5.0.3",   filename: "index.ts"   },
+  python:     { language: "python",     version: "3.10.0",  filename: "main.py"    },
+  java:       { language: "java",       version: "15.0.2",  filename: "Main.java"  },
+  cpp:        { language: "c++",        version: "10.2.0",  filename: "main.cpp"   },
+  c:          { language: "c",          version: "10.2.0",  filename: "main.c"     },
+  rust:       { language: "rust",       version: "1.50.0",  filename: "main.rs"    },
+  bash:       { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
+  php:        { language: "php",        version: "8.2.3",   filename: "index.php"  },
+  go:         { language: "go",         version: "1.16.2",  filename: "main.go"    },
+  ruby:       { language: "ruby",       version: "3.0.1",   filename: "main.rb"    },
+  swift:      { language: "swift",      version: "5.3.3",   filename: "main.swift" },
 };
 
 export const useEditorStore = create<EditorStore>()(
@@ -636,7 +171,7 @@ export const useEditorStore = create<EditorStore>()(
         {
           id: "welcome",
           type: "info",
-          content: "Welcome to Code Editor Terminal. Type 'help' for available commands.",
+          content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
           timestamp: Date.now(),
         },
       ],
@@ -654,6 +189,20 @@ export const useEditorStore = create<EditorStore>()(
             const path = `${parent.path}/${name}`;
             const lang = getLanguageFromPath(path);
             parent.children.push({
+              id,
+              name,
+              type,
+              path,
+              language: type === "file" ? lang : undefined,
+              content: type === "file" ? "" : undefined,
+              children: type === "folder" ? [] : undefined,
+              isOpen: type === "folder" ? false : undefined,
+            });
+          } else {
+            // Add to root if no parent found
+            const path = `/${name}`;
+            const lang = getLanguageFromPath(path);
+            files.push({
               id,
               name,
               type,
@@ -861,7 +410,7 @@ export const useEditorStore = create<EditorStore>()(
             {
               id: generateId(),
               type: "info",
-              content: "Terminal cleared.",
+              content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
               timestamp: Date.now(),
             },
           ],
@@ -879,38 +428,127 @@ export const useEditorStore = create<EditorStore>()(
           return;
         }
 
-        // Try real backend terminal API first
-        fetch("/api/terminal", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ command: trimmed }),
-        })
-          .then(async (res) => {
-            const data = await res.json();
-            if (data.error && !data.output) {
-              addTerminalLine({ type: "error", content: data.error });
-            } else if (data.output) {
-              addTerminalLine({
-                type: data.exitCode !== 0 ? "error" : "output",
-                content: data.output,
-              });
-            }
+        if (trimmed === "help") {
+          addTerminalLine({
+            type: "output",
+            content: `⚡ Su Zai Zai Code Terminal
+─────────────────────────────
+  run         → execute current file
+  clear       → clear terminal
+  help        → show this help
+  ls          → list open files
+  date        → show current date/time
+─────────────────────────────`,
+          });
+          return;
+        }
+
+        if (trimmed === "date") {
+          addTerminalLine({ type: "output", content: new Date().toString() });
+          return;
+        }
+
+        if (trimmed === "ls") {
+          const files = getAllFilesFlat(get().files);
+          addTerminalLine({
+            type: "output",
+            content: files.length > 0
+              ? files.map((f) => f.name).join("  ")
+              : "(no files)",
+          });
+          return;
+        }
+
+        if (trimmed === "run") {
+          const state = get();
+          const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
+          if (!activeTab) {
+            addTerminalLine({
+              type: "error",
+              content: "No file open. Open a file first then type run.",
+            });
+            return;
+          }
+
+          const file = findFileById(state.files, activeTab.fileId);
+          if (!file || !file.content) {
+            addTerminalLine({ type: "error", content: "File is empty." });
+            return;
+          }
+
+          const lang = file.language ?? "javascript";
+          const runtime = LANGUAGE_MAP[lang];
+
+          if (!runtime) {
+            addTerminalLine({
+              type: "error",
+              content: `Language "${lang}" is not supported for execution.\nSupported: ${Object.keys(LANGUAGE_MAP).join(", ")}`,
+            });
+            return;
+          }
+
+          addTerminalLine({
+            type: "info",
+            content: `▶ Running ${file.name} (${lang})...`,
+          });
+          addTerminalLine({ type: "info", content: "─────────────────────────────" });
+
+          fetch(`${PISTON_URL}/execute`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              language: runtime.language,
+              version: runtime.version,
+              files: [{ name: runtime.filename, content: file.content }],
+              run_timeout: 10000,
+              compile_timeout: 10000,
+            }),
           })
-          .catch(() => {
-            // Fallback to local simulation if API is unreachable
-            const parts = trimmed.split(/\s+/);
-            const cmd = parts[0].toLowerCase();
-            const args = parts.slice(1);
-            const handler = TERMINAL_COMMANDS[cmd];
-            if (handler) {
-              addTerminalLine({ type: "output", content: handler(args) });
-            } else {
+            .then((r) => r.json())
+            .then((data) => {
+              const run = data.run ?? {};
+              const compile = data.compile ?? {};
+
+              if (compile.stderr) {
+                compile.stderr.split("\n").filter(Boolean).forEach((line: string) =>
+                  addTerminalLine({ type: "error", content: line })
+                );
+                return;
+              }
+
+              if (run.stdout) {
+                run.stdout.split("\n").filter(Boolean).forEach((line: string) =>
+                  addTerminalLine({ type: "output", content: line })
+                );
+              }
+
+              if (run.stderr) {
+                run.stderr.split("\n").filter(Boolean).forEach((line: string) =>
+                  addTerminalLine({ type: "error", content: line })
+                );
+              }
+
+              addTerminalLine({
+                type: run.code === 0 ? "info" : "error",
+                content: `─── Exited with code ${run.code ?? 0} ───`,
+              });
+            })
+            .catch((err) => {
               addTerminalLine({
                 type: "error",
-                content: `bash: ${cmd}: command not found`,
+                content: `Failed to reach execution server: ${err.message}`,
               });
-            }
-          });
+            });
+
+          return;
+        }
+
+        // Unknown command
+        const parts = trimmed.split(/\s+/);
+        addTerminalLine({
+          type: "error",
+          content: `bash: ${parts[0]}: command not found. Type "help" for available commands.`,
+        });
       },
 
       setProblems: (problems) => set({ problems }),
@@ -925,22 +563,15 @@ export const useEditorStore = create<EditorStore>()(
         if (activeTab) {
           const file = findFileById(state.files, activeTab.fileId);
           if (file && file.content !== undefined) {
-            // Save to backend
-            fetch(`/api/files`, {
-              method: "GET",
-            })
-              .then((r) => r.json())
-              .then((files: { id: number; path: string }[]) => {
-                const match = files.find((f) => f.path === file.path);
-                if (match) {
-                  fetch(`/api/files/${match.id}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: file.content }),
-                  }).catch(() => {});
-                }
-              })
-              .catch(() => {});
+            try {
+              localStorage.setItem(
+                `szz-file-${file.path}`,
+                JSON.stringify({
+                  content: file.content,
+                  savedAt: Date.now(),
+                })
+              );
+            } catch {}
           }
         }
         set((state) => ({
@@ -951,12 +582,11 @@ export const useEditorStore = create<EditorStore>()(
       },
 
       setFilesFromApi: (files) => {
-        // When loading from API, reset tabs since old IDs won't match new API IDs
         set({ files, openTabs: [], activeTabId: null });
       },
     }),
     {
-      name: "vscode-mobile-state",
+      name: "su-zai-zai-state",
       partialize: (state) => ({
         files: state.files,
         openTabs: state.openTabs,
