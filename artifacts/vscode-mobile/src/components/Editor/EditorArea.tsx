@@ -58,29 +58,11 @@ export function EditorArea() {
   const [running, setRunning] = useState(false);
   const [cursor, setCursor]   = useState({ line: 1, col: 1 });
   const [copied, setCopied]   = useState(false);
-  const lastContentRef = useRef<Record<string, string>>({});
-
-// Initialize content ref from store when tab changes
-if (activeTab && !lastContentRef.current[activeTab.fileId]) {
-  const findContent = (nodes: typeof files): string => {
-    for (const node of nodes) {
-      if (node.id === activeTab.fileId) return node.content || "";
-      if (node.children) {
-        const found = findContent(node.children);
-        if (found !== "") return found;
-      }
-    }
-    return "";
-  };
-  lastContentRef.current[activeTab.fileId] = findContent(files);
-                       }
+  const lastContentRef        = useRef<Record<string, string>>({});
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
   const getFileContent = useCallback((fileId: string): string => {
-    if (lastContentRef.current[fileId]) {
-      return lastContentRef.current[fileId];
-    }
     const findContent = (nodes: typeof files): string => {
       for (const node of nodes) {
         if (node.id === fileId) return node.content || "";
@@ -91,7 +73,9 @@ if (activeTab && !lastContentRef.current[activeTab.fileId]) {
       }
       return "";
     };
-    return findContent(files);
+    const fromStore = findContent(files);
+    if (fromStore) return fromStore;
+    return lastContentRef.current[fileId] || "";
   }, [files]);
 
   const handleRun = async () => {
@@ -289,4 +273,4 @@ if (activeTab && !lastContentRef.current[activeTab.fileId]) {
       </div>
     </div>
   );
-                        }
+               }
