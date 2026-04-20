@@ -55,19 +55,33 @@ export function TitleBar() {
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-  const getFileContent = (fileId: string): string => {
-    const findContent = (nodes: typeof files): string => {
-      for (const node of nodes) {
-        if (node.id === fileId) return node.content || "";
-        if (node.children) {
-          const found = findContent(node.children);
-          if (found !== "") return found;
-        }
+const getFileContent = (fileId: string): string => {
+  // Try store files first
+  const findContent = (nodes: typeof files): string => {
+    for (const node of nodes) {
+      if (node.id === fileId) return node.content || "";
+      if (node.children) {
+        const found = findContent(node.children);
+        if (found !== "") return found;
       }
-      return "";
-    };
-    return findContent(files);
+    }
+    return "";
   };
+  const fromStore = findContent(files);
+  if (fromStore) return fromStore;
+
+  // Fallback: try localStorage
+  const activeFile = openTabs.find(t => t.id === activeTabId);
+  if (activeFile) {
+    const saved = localStorage.getItem(`szz-file-${activeFile.filePath}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved).content || "";
+      } catch {}
+    }
+  }
+  return "";
+};
 
   const handleDownload = () => {
     if (!activeTab) return;
