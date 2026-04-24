@@ -1,3 +1,4 @@
+import { getCurrentEditorView } from "@/lib/editorView";
 import { EditorView } from "@codemirror/view";
 import { Transaction } from "@codemirror/state";
 
