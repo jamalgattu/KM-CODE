@@ -9,7 +9,7 @@ const DEFAULT_FILES: FileNode[] = [
     type: "file",
     path: "/welcome.md",
     language: "markdown",
-    content: `# Welcome to KM Code! ⚡
+    content: `# Welcome to Su zai zai Code! ⚡
 
 A free mobile-first code editor for everyone.
 
@@ -595,7 +595,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
       },
     }),
     {
-      name: "km-code-state",
+      name: "szz-v2",,
       partialize: (state) => ({
         files: state.files,
         openTabs: state.openTabs,
