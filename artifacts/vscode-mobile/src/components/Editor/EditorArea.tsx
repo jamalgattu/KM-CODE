@@ -148,18 +148,18 @@ export function EditorArea() {
       const compile = data.compile || {};
 
       if (compile.stderr) {
-        compile.stderr.split("\n").filter(Boolean).forEach((line: string) => {
-          addOutput("error", line);
+        compile.stderr.split("\n").forEach((line: string) => {
+          addOutput("error", line || " ");
         });
       } else {
         if (run.stdout) {
           run.stdout.split("\n").forEach((line: string) => {
-            addOutput("output", line);
+            addOutput("output", line || " ");
           });
         }
         if (run.stderr) {
-          run.stderr.split("\n").filter(Boolean).forEach((line: string) => {
-            addOutput("error", line);
+          run.stderr.split("\n").forEach((line: string) => {
+            addOutput("error", line || " ");
           });
         }
         const code = run.code ?? 0;
@@ -195,7 +195,7 @@ export function EditorArea() {
   };
 
   const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    const clientY = "touches" in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     dragRef.current = { startY: clientY, startH: terminalHeight };
   };
 
@@ -249,7 +249,8 @@ export function EditorArea() {
   const content = lastContentRef.current[activeTab.fileId] || findContent(files);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background"
+    <div
+      className="flex flex-col h-full overflow-hidden bg-background"
       onMouseMove={handleDragMove}
       onMouseUp={handleDragEnd}
       onTouchMove={handleDragMove}
@@ -319,19 +320,20 @@ export function EditorArea() {
 
       {/* Drag handle */}
       <div
-        className="h-1.5 bg-border hover:bg-primary/50 cursor-row-resize shrink-0 transition-colors"
+        className="h-2 bg-border hover:bg-primary/50 cursor-row-resize shrink-0 transition-colors flex items-center justify-center"
         onMouseDown={handleDragStart}
         onTouchStart={handleDragStart}
-      />
+      >
+        <div className="w-8 h-0.5 bg-muted-foreground/30 rounded-full" />
+      </div>
 
       {/* Terminal panel */}
       <div
         className="shrink-0 flex flex-col bg-[#0d0d0d] border-t border-border font-mono text-xs"
         style={{ height: terminalHeight }}
       >
-        {/* Terminal header */}
-        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-800 shrink-0">
-          <span className="text-gray-400 font-sans text-xs">TERMINAL</span>
+        <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-800 shrink-0">
+          <span className="text-gray-400 font-sans text-xs font-semibold tracking-wider">TERMINAL</span>
           <div className="flex items-center gap-2">
             {canRun && (
               <button
@@ -345,18 +347,17 @@ export function EditorArea() {
             )}
             <button
               onClick={() => setOutputLines([])}
-              className="p-1 rounded text-gray-500 hover:text-gray-300"
-              title="Clear"
+              className="p-1 rounded text-gray-500 hover:text-gray-300 transition-colors"
+              title="Clear terminal"
             >
               <Trash2 size={12} />
             </button>
           </div>
         </div>
 
-        {/* Output */}
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {outputLines.length === 0 ? (
-            <div className="text-gray-600 text-xs mt-2 text-center">
+            <div className="text-gray-600 text-xs mt-4 text-center">
               Click ▶ Run to execute your code
             </div>
           ) : (
