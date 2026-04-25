@@ -595,7 +595,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
       },
     }),
     {
-      name: "szz-v2",,
+      name: "szz-v2",
       partialize: (state) => ({
         files: state.files,
         openTabs: state.openTabs,
