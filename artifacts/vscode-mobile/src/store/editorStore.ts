@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
+import { getCurrentEditorView } from "@/lib/editorView";
 
 const DEFAULT_FILES: FileNode[] = [
   {
@@ -511,7 +512,15 @@ Supported languages: JS, TS, Python, Java, C++, C,
         }
 
         const file = findFileById(state.files, activeTab.fileId);
-        if (!file || !file.content?.trim()) {
+
+        // Prefer store content; fall back to the live editor view if store is stale
+        let fileContent = file?.content ?? "";
+        if (!fileContent.trim()) {
+          const liveView = getCurrentEditorView();
+          if (liveView) fileContent = liveView.state.doc.toString();
+        }
+
+        if (!file || !fileContent.trim()) {
           addTerminalLine({ type: "error", content: "File is empty — add some code first." });
           set({ panelVisible: true, activePanel: "terminal" });
           return;
@@ -546,7 +555,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
           body: JSON.stringify({
             language: runtime.language,
             version: runtime.version,
-            files: [{ name: runtime.filename, content: file.content }],
+            files: [{ name: runtime.filename, content: fileContent }],
             run_timeout: 10000,
             compile_timeout: 10000,
           }),

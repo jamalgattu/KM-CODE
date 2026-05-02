@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
   drawSelection, rectangularSelection, crosshairCursor, dropCursor,
@@ -158,6 +158,10 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
     ];
   }, [theme, fontFamily]);
 
+  // Keep a ref to `onChange` so the updateListener closure is never stale
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -193,7 +197,7 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         if (update.docChanged) {
           const newContent = update.state.doc.toString();
           contentRef.current = newContent;
-          onChange(newContent);
+          onChangeRef.current(newContent); // always call the latest onChange
         }
         if (update.selectionSet || update.docChanged) {
           if (onCursorChange) {
@@ -207,8 +211,15 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         "&": {
           fontSize: `${fontSize}px`,
           fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
+          height: "100%",
         },
-        ".cm-scroller": { fontFamily: "inherit" },
+        ".cm-scroller": {
+          fontFamily: "inherit",
+          overflow: "auto",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-y",
+        },
+        ".cm-content": { touchAction: "pan-y" },
       }),
       langExt,
     ].flat();
@@ -249,7 +260,8 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   return (
     <div
       ref={editorRef}
-      className="h-full w-full overflow-hidden"
+      className="h-full w-full"
+      style={{ overflow: "hidden" }}
       data-testid="code-editor"
     />
   );
