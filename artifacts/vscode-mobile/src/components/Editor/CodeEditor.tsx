@@ -7,8 +7,9 @@ import { EditorState, StateEffect } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import {
   indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
-  defaultHighlightStyle,
+  HighlightStyle,
 } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { lintKeymap } from "@codemirror/lint";
@@ -35,6 +36,51 @@ interface CodeEditorProps {
   onChange: (content: string) => void;
   onCursorChange?: (line: number, col: number) => void;
 }
+
+// Rich light-theme highlight style
+const lightHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword,               color: "#7c3aed", fontWeight: "bold" },
+  { tag: tags.controlKeyword,        color: "#7c3aed", fontWeight: "bold" },
+  { tag: tags.operatorKeyword,       color: "#7c3aed" },
+  { tag: tags.definitionKeyword,     color: "#1d4ed8", fontWeight: "bold" },
+  { tag: tags.moduleKeyword,         color: "#1d4ed8", fontWeight: "bold" },
+  { tag: tags.string,                color: "#16a34a" },
+  { tag: tags.special(tags.string),  color: "#15803d" },
+  { tag: tags.number,                color: "#dc2626" },
+  { tag: tags.bool,                  color: "#dc2626", fontWeight: "bold" },
+  { tag: tags.null,                  color: "#dc2626", fontWeight: "bold" },
+  { tag: tags.comment,               color: "#6b7280", fontStyle: "italic" },
+  { tag: tags.lineComment,           color: "#6b7280", fontStyle: "italic" },
+  { tag: tags.blockComment,          color: "#6b7280", fontStyle: "italic" },
+  { tag: tags.function(tags.variableName), color: "#d97706" },
+  { tag: tags.function(tags.propertyName), color: "#d97706" },
+  { tag: tags.definition(tags.variableName), color: "#0369a1" },
+  { tag: tags.definition(tags.propertyName), color: "#0369a1" },
+  { tag: tags.variableName,          color: "#334155" },
+  { tag: tags.propertyName,         color: "#0f766e" },
+  { tag: tags.className,            color: "#0369a1", fontWeight: "bold" },
+  { tag: tags.typeName,             color: "#0369a1" },
+  { tag: tags.namespace,            color: "#0369a1" },
+  { tag: tags.operator,             color: "#374151" },
+  { tag: tags.punctuation,          color: "#6b7280" },
+  { tag: tags.bracket,              color: "#374151" },
+  { tag: tags.angleBracket,         color: "#374151" },
+  { tag: tags.tagName,              color: "#dc2626", fontWeight: "bold" },
+  { tag: tags.attributeName,        color: "#d97706" },
+  { tag: tags.attributeValue,       color: "#16a34a" },
+  { tag: tags.url,                  color: "#2563eb", textDecoration: "underline" },
+  { tag: tags.regexp,               color: "#0891b2" },
+  { tag: tags.escape,               color: "#9333ea" },
+  { tag: tags.color,                color: "#0891b2" },
+  { tag: tags.atom,                 color: "#dc2626" },
+  { tag: tags.meta,                 color: "#7c3aed" },
+  { tag: tags.processingInstruction, color: "#7c3aed" },
+  { tag: tags.heading,              color: "#1d4ed8", fontWeight: "bold" },
+  { tag: tags.emphasis,             fontStyle: "italic" },
+  { tag: tags.strong,               fontWeight: "bold" },
+  { tag: tags.link,                 color: "#2563eb", textDecoration: "underline" },
+  { tag: tags.strikethrough,        textDecoration: "line-through" },
+]);
 
 function getLanguageExtension(language: string) {
   switch (language) {
@@ -76,30 +122,40 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   const contentRef = useRef(content);
   const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers, fontFamily } = useEditorStore();
 
-  const getThemeExtension = useCallback(() => {
-    if (theme === "dark") return oneDark;
+  const getThemeExtensions = useCallback(() => {
+    if (theme === "dark") {
+      return [oneDark];
+    }
 
-    return EditorView.theme({
-      "&": {
-        backgroundColor: "hsl(220 14% 98%)",
-        color: "hsl(220 14% 15%)",
-        fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
-      },
-      ".cm-content": { caretColor: "#007acc" },
-      "&.cm-focused .cm-cursor": { borderLeftColor: "#007acc" },
-      ".cm-gutters": {
-        backgroundColor: "hsl(220 14% 93%)",
-        color: "hsl(220 9% 55%)",
-        borderRight: "1px solid hsl(220 13% 87%)",
-      },
-      ".cm-activeLineGutter": { backgroundColor: "hsl(207 90% 90%)" },
-      ".cm-activeLine": { backgroundColor: "hsl(207 90% 95%)" },
-      "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-        backgroundColor: "hsl(207 90% 80%)",
-      },
-      ".cm-searchMatch": { backgroundColor: "#ffd70040", outline: "1px solid #ffd700" },
-      ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#ffd70080" },
-    });
+    return [
+      EditorView.theme({
+        "&": {
+          backgroundColor: "hsl(220 14% 98%)",
+          color: "#334155",
+          fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
+        },
+        ".cm-content": { caretColor: "#7c3aed" },
+        "&.cm-focused .cm-cursor": { borderLeftColor: "#7c3aed" },
+        ".cm-gutters": {
+          backgroundColor: "hsl(220 14% 94%)",
+          color: "#94a3b8",
+          borderRight: "1px solid hsl(220 13% 87%)",
+        },
+        ".cm-lineNumbers .cm-gutterElement": { padding: "0 8px 0 4px" },
+        ".cm-activeLineGutter": { backgroundColor: "hsl(220 80% 95%)" },
+        ".cm-activeLine": { backgroundColor: "hsl(220 80% 97%)" },
+        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
+          backgroundColor: "#bfdbfe",
+        },
+        ".cm-foldPlaceholder": { backgroundColor: "#e0e7ff", color: "#4338ca", border: "1px solid #c7d2fe" },
+        ".cm-searchMatch": { backgroundColor: "#fef08a", outline: "1px solid #facc15" },
+        ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#fde047" },
+        ".cm-tooltip": { backgroundColor: "hsl(220 14% 98%)", border: "1px solid hsl(220 13% 87%)" },
+        ".cm-completionLabel": { color: "#334155" },
+        ".cm-completionDetail": { color: "#64748b" },
+      }),
+      syntaxHighlighting(lightHighlightStyle),
+    ];
   }, [theme, fontFamily]);
 
   useEffect(() => {
@@ -120,7 +176,6 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       highlightActiveLine(),
       highlightActiveLineGutter(),
       foldGutter(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       keymap.of([
         ...closeBracketsKeymap,
         ...defaultKeymap,
@@ -132,7 +187,7 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       ]),
       EditorState.tabSize.of(tabSize),
       wordWrap ? EditorView.lineWrapping : [],
-      getThemeExtension(),
+      ...getThemeExtensions(),
       showLineNumbers ? lineNumbers() : [],
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -153,19 +208,13 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
           fontSize: `${fontSize}px`,
           fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
         },
+        ".cm-scroller": { fontFamily: "inherit" },
       }),
       langExt,
     ].flat();
 
-    const state = EditorState.create({
-      doc: content,
-      extensions,
-    });
-
-    const view = new EditorView({
-      state,
-      parent: editorRef.current,
-    });
+    const state = EditorState.create({ doc: content, extensions });
+    const view = new EditorView({ state, parent: editorRef.current });
 
     viewRef.current = view;
     setCurrentEditorView(view);
@@ -175,17 +224,13 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       view.destroy();
       viewRef.current = null;
     };
-  }, [fileId, language]);
+  }, [fileId, language, theme]);
 
   useEffect(() => {
     if (!viewRef.current || content === contentRef.current) return;
     contentRef.current = content;
     viewRef.current.dispatch({
-      changes: {
-        from: 0,
-        to: viewRef.current.state.doc.length,
-        insert: content,
-      },
+      changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
     });
   }, [fileId, content]);
 
@@ -193,7 +238,10 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
     if (!viewRef.current) return;
     viewRef.current.dispatch({
       effects: StateEffect.reconfigure.of([
-        EditorView.theme({ "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace` } }),
+        EditorView.theme({
+          "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace` },
+          ".cm-scroller": { fontFamily: "inherit" },
+        }),
       ]),
     });
   }, [fontSize, fontFamily]);

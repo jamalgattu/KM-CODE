@@ -75,6 +75,20 @@ export interface TerminalLine {
   timestamp: number;
 }
 
+export interface OutputLine {
+  id: string;
+  type: "stdout" | "stderr" | "system" | "success" | "failure";
+  content: string;
+  timestamp: number;
+}
+
+export interface OutputMeta {
+  exitCode: number;
+  durationMs: number;
+  language: string;
+  fileName: string;
+}
+
 export const LANGUAGE_MAP: Record<string, string> = {
   js: "javascript",
   jsx: "javascript",
@@ -108,6 +122,44 @@ export const LANGUAGE_MAP: Record<string, string> = {
 export function getLanguageFromPath(path: string): string {
   const ext = path.split(".").pop()?.toLowerCase() || "";
   return LANGUAGE_MAP[ext] || "plaintext";
+}
+
+const SHEBANG_MAP: Record<string, string> = {
+  python: "python", python3: "python", node: "javascript",
+  bash: "bash", sh: "bash", ruby: "ruby", php: "php",
+  perl: "perl", swift: "swift", go: "go",
+};
+
+export function detectLanguage(filename: string, content: string): string {
+  // 1. Extension-based detection (most reliable)
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  if (ext && LANGUAGE_MAP[ext]) return LANGUAGE_MAP[ext];
+
+  // 2. Shebang line detection
+  const firstLine = content.split("\n")[0]?.trim() || "";
+  if (firstLine.startsWith("#!")) {
+    const parts = firstLine.replace(/^#!\s*/, "").split(/[\s/]+/);
+    const interpreter = parts[parts.length - 1].replace("env", "").trim() || parts[0];
+    for (const [key, lang] of Object.entries(SHEBANG_MAP)) {
+      if (interpreter.toLowerCase().includes(key)) return lang;
+    }
+  }
+
+  // 3. Content heuristics
+  if (/^\s*<\?xml/i.test(content))        return "xml";
+  if (/^\s*<!DOCTYPE html/i.test(content)) return "html";
+  if (/^\s*<html/i.test(content))          return "html";
+  if (/^\s*package\s+\w+\s*;/.test(content) && content.includes("class")) return "java";
+  if (/^\s*(pub\s+)?(fn|use|mod|struct|enum|impl)\s/.test(content)) return "rust";
+  if (/^\s*package main/.test(content) || content.includes("func main()")) return "go";
+  if (/^\s*(#include|using namespace|int main\s*\()/.test(content)) return "cpp";
+  if (/^\s*(def |class |import |from .+ import)/.test(content)) return "python";
+  if (/^\s*(const|let|var|function|=>|require\s*\(|module\.exports)/.test(content)) return "javascript";
+  if (/(interface|type\s+\w+\s*=|:\s*(string|number|boolean|void))/.test(content)) return "typescript";
+  if (/^\s*(\{|\[)\s*$/.test(content.split("\n")[0] || "")) return "json";
+  if (/^---/.test(content) || /^\w+:/.test(firstLine)) return "yaml";
+
+  return "plaintext";
 }
 
 export function getFileIcon(name: string): { icon: string; color: string } {

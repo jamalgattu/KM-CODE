@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { EditorState, FileNode, Tab, TerminalLine, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
+import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
 
 const DEFAULT_FILES: FileNode[] = [
   {
@@ -9,7 +9,7 @@ const DEFAULT_FILES: FileNode[] = [
     type: "file",
     path: "/welcome.md",
     language: "markdown",
-    content: `# Welcome to Su zai zai Code! ⚡
+    content: `# Welcome to KM Code! ⚡
 
 A free mobile-first code editor for everyone.
 
@@ -55,6 +55,9 @@ function generateId(): string {
 
 interface EditorStore extends EditorState {
   terminalLines: TerminalLine[];
+  outputLines: OutputLine[];
+  outputMeta: OutputMeta | null;
+  isRunning: boolean;
 
   addFile: (parentId: string, name: string, type: "file" | "folder") => string;
   deleteFile: (fileId: string) => void;
@@ -94,6 +97,10 @@ interface EditorStore extends EditorState {
   addTerminalLine: (line: Omit<TerminalLine, "id" | "timestamp">) => void;
   clearTerminal: () => void;
   executeCommand: (command: string) => void;
+
+  addOutputLine: (line: Omit<OutputLine, "id" | "timestamp">) => void;
+  clearOutput: () => void;
+  executeRun: () => void;
 
   setProblems: (problems: Problem[]) => void;
   addProblem: (problem: Omit<Problem, "id">) => void;
@@ -184,6 +191,9 @@ export const useEditorStore = create<EditorStore>()(
           timestamp: Date.now(),
         },
       ],
+      outputLines: [],
+      outputMeta: null,
+      isRunning: false,
 
       getFileById: (fileId) => findFileById(get().files, fileId),
       getAllFiles: () => getAllFilesFlat(get().files),
@@ -470,86 +480,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
         }
 
         if (trimmed === "run") {
-          const state = get();
-          const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
-          if (!activeTab) {
-            addTerminalLine({
-              type: "error",
-              content: "No file open. Open a file first then type run.",
-            });
-            return;
-          }
-
-          const file = findFileById(state.files, activeTab.fileId);
-          if (!file || !file.content) {
-            addTerminalLine({ type: "error", content: "File is empty." });
-            return;
-          }
-
-          const lang = (file.language ?? "javascript").toLowerCase();
-          const runtime = LANGUAGE_RUNTIME[lang];
-
-          if (!runtime) {
-            addTerminalLine({
-              type: "error",
-              content: `Language "${lang}" is not supported for execution.\nSupported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
-            });
-            return;
-          }
-
-          addTerminalLine({
-            type: "info",
-            content: `▶ Running ${file.name} (${lang})...`,
-          });
-          addTerminalLine({ type: "info", content: "─────────────────────────────" });
-
-          fetch(`${PISTON_URL}/execute`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              language: runtime.language,
-              version: runtime.version,
-              files: [{ name: runtime.filename, content: file.content }],
-              run_timeout: 10000,
-              compile_timeout: 10000,
-            }),
-          })
-            .then((r) => r.json())
-            .then((data) => {
-              const run = data.run ?? {};
-              const compile = data.compile ?? {};
-
-              if (compile.stderr) {
-                compile.stderr.split("\n").filter(Boolean).forEach((line: string) =>
-                  addTerminalLine({ type: "error", content: line })
-                );
-                return;
-              }
-
-              if (run.stdout) {
-                run.stdout.split("\n").filter(Boolean).forEach((line: string) =>
-                  addTerminalLine({ type: "output", content: line })
-                );
-              }
-
-              if (run.stderr) {
-                run.stderr.split("\n").filter(Boolean).forEach((line: string) =>
-                  addTerminalLine({ type: "error", content: line })
-                );
-              }
-
-              addTerminalLine({
-                type: run.code === 0 ? "info" : "error",
-                content: `─── Exited with code ${run.code ?? 0} ───`,
-              });
-            })
-            .catch((err) => {
-              addTerminalLine({
-                type: "error",
-                content: `Failed to reach execution server: ${err.message}`,
-              });
-            });
-
+          get().executeRun();
           return;
         }
 
@@ -558,6 +489,111 @@ Supported languages: JS, TS, Python, Java, C++, C,
           type: "error",
           content: `bash: ${parts[0]}: command not found. Type "help" for available commands.`,
         });
+      },
+
+      addOutputLine: (line) =>
+        set((state) => ({
+          outputLines: [
+            ...state.outputLines,
+            { ...line, id: generateId(), timestamp: Date.now() },
+          ],
+        })),
+
+      clearOutput: () => set({ outputLines: [], outputMeta: null }),
+
+      executeRun: () => {
+        const state = get();
+        const { addTerminalLine, addOutputLine } = state;
+        const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
+        if (!activeTab) return;
+
+        const file = findFileById(state.files, activeTab.fileId);
+        if (!file || !file.content?.trim()) {
+          addOutputLine({ type: "system", content: "File is empty — nothing to run." });
+          return;
+        }
+
+        const lang = (file.language ?? "javascript").toLowerCase();
+        const runtime = LANGUAGE_RUNTIME[lang];
+        if (!runtime) {
+          addOutputLine({
+            type: "failure",
+            content: `Language "${lang}" cannot be executed. Supported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
+          });
+          return;
+        }
+
+        const startMs = Date.now();
+        set({
+          outputLines: [],
+          outputMeta: null,
+          activePanel: "output",
+          panelVisible: true,
+          isRunning: true,
+        });
+        addOutputLine({ type: "system", content: `▶  ${file.name}  ·  ${lang}` });
+        addOutputLine({ type: "system", content: "─".repeat(40) });
+        addTerminalLine({ type: "info", content: `▶ Running ${file.name} (${lang})...` });
+
+        fetch(`${PISTON_URL}/execute`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            language: runtime.language,
+            version: runtime.version,
+            files: [{ name: runtime.filename, content: file.content }],
+            run_timeout: 10000,
+            compile_timeout: 10000,
+          }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            const run = data.run ?? {};
+            const compile = data.compile ?? {};
+            const durationMs = Date.now() - startMs;
+            const exitCode = run.code ?? 0;
+
+            if (compile.stderr) {
+              compile.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+                addOutputLine({ type: "stderr", content: l });
+                addTerminalLine({ type: "error", content: l });
+              });
+            } else {
+              if (run.stdout) {
+                run.stdout.split("\n").forEach((l: string) => {
+                  addOutputLine({ type: "stdout", content: l });
+                  addTerminalLine({ type: "output", content: l });
+                });
+              }
+              if (run.stderr) {
+                run.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+                  addOutputLine({ type: "stderr", content: l });
+                  addTerminalLine({ type: "error", content: l });
+                });
+              }
+            }
+
+            addOutputLine({ type: "system", content: "─".repeat(40) });
+            if (exitCode === 0) {
+              addOutputLine({ type: "success", content: `✓  Exited 0  ·  ${durationMs}ms` });
+            } else {
+              addOutputLine({ type: "failure", content: `✗  Exited ${exitCode}  ·  ${durationMs}ms` });
+            }
+            addTerminalLine({
+              type: exitCode === 0 ? "info" : "error",
+              content: `─── Exited ${exitCode} (${durationMs}ms) ───`,
+            });
+
+            set({
+              outputMeta: { exitCode, durationMs, language: lang, fileName: file.name },
+              isRunning: false,
+            });
+          })
+          .catch((err) => {
+            addOutputLine({ type: "failure", content: `Failed to reach execution server: ${err.message}` });
+            addTerminalLine({ type: "error", content: `Execution failed: ${err.message}` });
+            set({ isRunning: false });
+          });
       },
 
       setProblems: (problems) => set({ problems }),
@@ -595,7 +631,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
       },
     }),
     {
-      name: "szz-v2",
+      name: "km-code-state",
       partialize: (state) => ({
         files: state.files,
         openTabs: state.openTabs,

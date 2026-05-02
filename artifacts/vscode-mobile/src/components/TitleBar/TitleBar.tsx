@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Save, Play, TerminalSquare, Code2, Loader2 } from "lucide-react";
+import { Save, Play, Loader2, TerminalSquare, Code2 } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
@@ -45,43 +45,28 @@ const MENU_ITEMS = {
 
 export function TitleBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
   const {
     saveCurrentFile, togglePanel, setActivePanel, panelVisible,
     toggleSidebar, setActiveSidePanel, autoSave, setAutoSave,
-    setTheme, theme, openTabs, activeTabId, executeCommand, files,
-    addTerminalLine,
+    setTheme, theme, openTabs, activeTabId, files,
+    executeRun, isRunning,
   } = useEditorStore();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
-const getFileContent = (fileId: string): string => {
-  // Try store files first
-  const findContent = (nodes: typeof files): string => {
-    for (const node of nodes) {
-      if (node.id === fileId) return node.content || "";
-      if (node.children) {
-        const found = findContent(node.children);
-        if (found !== "") return found;
+  const getFileContent = (fileId: string): string => {
+    const findContent = (nodes: typeof files): string => {
+      for (const node of nodes) {
+        if (node.id === fileId) return node.content || "";
+        if (node.children) {
+          const found = findContent(node.children);
+          if (found !== "") return found;
+        }
       }
-    }
-    return "";
+      return "";
+    };
+    return findContent(files);
   };
-  const fromStore = findContent(files);
-  if (fromStore) return fromStore;
-
-  // Fallback: try localStorage
-  const activeFile = openTabs.find(t => t.id === activeTabId);
-  if (activeFile) {
-    const saved = localStorage.getItem(`szz-file-${activeFile.filePath}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved).content || "";
-      } catch {}
-    }
-  }
-  return "";
-};
 
   const handleDownload = () => {
     if (!activeTab) return;
@@ -95,78 +80,10 @@ const getFileContent = (fileId: string): string => {
     URL.revokeObjectURL(url);
   };
 
-  const handleRunCode = async () => {
-  if (!activeTab) {
-    alert("No file open! Create a file first.");
-    return;
-  }
-
-  const content = getFileContent(activeTab.fileId);
-  if (!content.trim()) {
-    alert("File is empty!");
-    return;
-  }
-
-  const lang = activeTab.language ?? "javascript";
-
-  const LANGUAGE_MAP: Record<string, { language: string; version: string; filename: string }> = {
-    javascript: { language: "javascript", version: "18.15.0", filename: "index.js"   },
-    typescript: { language: "typescript", version: "5.0.3",   filename: "index.ts"   },
-    python:     { language: "python",     version: "3.10.0",  filename: "main.py"    },
-    java:       { language: "java",       version: "15.0.2",  filename: "Main.java"  },
-    cpp:        { language: "c++",        version: "10.2.0",  filename: "main.cpp"   },
-    c:          { language: "c",          version: "10.2.0",  filename: "main.c"     },
-    rust:       { language: "rust",       version: "1.50.0",  filename: "main.rs"    },
-    bash:       { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
-    php:        { language: "php",        version: "8.2.3",   filename: "index.php"  },
-    go:         { language: "go",         version: "1.16.2",  filename: "main.go"    },
-    ruby:       { language: "ruby",       version: "3.0.1",   filename: "main.rb"    },
-    swift:      { language: "swift",      version: "5.3.3",   filename: "main.swift" },
+  const handleRunCode = () => {
+    if (!panelVisible) togglePanel();
+    executeRun();
   };
-
-  const runtime = LANGUAGE_MAP[lang];
-  if (!runtime) {
-    alert(`Language "${lang}" not supported yet.\nSupported: ${Object.keys(LANGUAGE_MAP).join(", ")}`);
-    return;
-  }
-
-  setRunning(true);
-
-  try {
-    const res = await fetch("https://emkc.org/api/v2/piston/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        language: runtime.language,
-        version: runtime.version,
-        files: [{ name: runtime.filename, content }],
-        run_timeout: 10000,
-        compile_timeout: 10000,
-      }),
-    });
-
-    const data = await res.json();
-    const run = data.run ?? {};
-    const compile = data.compile ?? {};
-
-    let output = "";
-
-    if (compile.stderr) {
-      output = "❌ Compile Error:\n" + compile.stderr;
-    } else {
-      if (run.stdout) output += run.stdout;
-      if (run.stderr) output += "\n❌ Error:\n" + run.stderr;
-      if (!output.trim()) output = "✅ Code ran successfully (no output)";
-    }
-
-    alert(`▶ Output (${activeTab.fileName}):\n\n${output}`);
-
-  } catch (err: any) {
-    alert("Failed to run code: " + err.message);
-  } finally {
-    setRunning(false);
-  }
-};
 
   const handleMenuAction = (label: string) => {
     setOpenMenu(null);
@@ -276,11 +193,12 @@ const getFileContent = (fileId: string): string => {
         </button>
         <button
           onClick={handleRunCode}
-          className="p-1.5 rounded text-muted-foreground hover:text-green-500 hover:bg-sidebar-accent transition-colors"
+          disabled={isRunning}
+          className="p-1.5 rounded text-muted-foreground hover:text-green-500 hover:bg-sidebar-accent transition-colors disabled:opacity-50"
           title="Run (⌘Enter)"
           data-testid="run-button"
         >
-          <Play size={15} />
+          {isRunning ? <Loader2 size={15} className="animate-spin text-green-500" /> : <Play size={15} />}
         </button>
         <button
           onClick={() => {

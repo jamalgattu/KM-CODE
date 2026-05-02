@@ -76,6 +76,7 @@
   },
   "dependencies": {
 "@supabase/supabase-js": "^2.45.0",
+    "@lezer/highlight": "^1.2.3",
     "@codemirror/autocomplete": "^6.20.1",
     "@codemirror/commands": "^6.10.3",
     "@codemirror/lang-cpp": "^6.0.3",
