@@ -30,7 +30,7 @@ export function FloatingRunButton() {
       disabled={isRunning}
       aria-label="Run code"
       className={cn(
-        "sm:hidden fixed bottom-8 right-4 z-50",
+        "sm:hidden fixed right-4 z-50",
         "w-14 h-14 rounded-full shadow-xl",
         "flex items-center justify-center",
         "bg-green-500 active:bg-green-600",
@@ -38,7 +38,7 @@ export function FloatingRunButton() {
         "disabled:opacity-60 disabled:cursor-not-allowed",
         "border-2 border-green-400/50",
       )}
-      style={{ boxShadow: "0 4px 24px rgba(34,197,94,0.4)" }}
+      style={{ boxShadow: "0 4px 24px rgba(34,197,94,0.4)", bottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)" }}
     >
       {isRunning
         ? <Loader2 size={24} className="animate-spin text-white" />

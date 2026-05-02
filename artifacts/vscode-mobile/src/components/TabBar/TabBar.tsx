@@ -29,7 +29,7 @@ function TabItem({ tab }: { tab: Tab }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 px-3 h-full cursor-pointer select-none shrink-0 group border-r border-border/50 transition-colors relative",
+        "flex items-center gap-1.5 px-2 sm:px-3 h-full cursor-pointer select-none shrink-0 group border-r border-border/50 transition-colors relative",
         isActive
           ? "bg-background text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
           : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -58,13 +58,13 @@ function TabItem({ tab }: { tab: Tab }) {
           closeTab(tab.id);
         }}
         className={cn(
-          "p-0.5 rounded hover:bg-sidebar-accent shrink-0 transition-opacity",
-          isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          "p-1 sm:p-0.5 rounded hover:bg-sidebar-accent shrink-0 transition-opacity touch-manipulation",
+          isActive ? "opacity-100" : "opacity-60 sm:opacity-0 sm:group-hover:opacity-100"
         )}
         title="Close"
         data-testid={`close-tab-${tab.id}`}
       >
-        <X size={12} />
+        <X size={13} className="sm:w-3 sm:h-3" />
       </button>
     </div>
   );
@@ -91,7 +91,7 @@ export function TabBar() {
   }
 
   return (
-    <div className="flex items-center h-9 border-b border-border bg-muted/30 overflow-hidden" data-testid="tab-bar">
+    <div className="flex items-center h-10 sm:h-9 border-b border-border bg-muted/30 overflow-hidden" data-testid="tab-bar">
       {openTabs.length > 4 && (
         <button
           onClick={scrollLeft}

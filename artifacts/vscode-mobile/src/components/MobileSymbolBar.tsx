@@ -44,11 +44,11 @@ export function MobileSymbolBar() {
   return (
     <div
       className="flex items-center overflow-x-auto shrink-0 border-t border-border bg-sidebar"
-      style={{ height: 38, scrollbarWidth: "none" }}
+      style={{ height: 44, scrollbarWidth: "none" }}
       data-testid="mobile-symbol-bar"
     >
       <style>{`.symbol-bar-scroll::-webkit-scrollbar { display: none; }`}</style>
-      <div className="flex items-center gap-px px-1 symbol-bar-scroll">
+      <div className="flex items-center gap-1 px-1.5 symbol-bar-scroll">
         {SYMBOLS.map(({ label, value }) => (
           <button
             key={label}
@@ -60,8 +60,8 @@ export function MobileSymbolBar() {
               e.preventDefault();
               insertAtCursor(value);
             }}
-            className="flex items-center justify-center shrink-0 px-2.5 h-7 rounded text-xs font-mono text-foreground bg-background border border-border hover:bg-sidebar-accent active:bg-primary/20 transition-colors select-none"
-            style={{ minWidth: label.length > 2 ? 40 : 32 }}
+            className="flex items-center justify-center shrink-0 px-3 h-8 rounded text-sm font-mono text-foreground bg-background border border-border active:bg-primary/20 active:scale-95 transition-all select-none touch-manipulation"
+            style={{ minWidth: label.length > 2 ? 44 : 36 }}
           >
             {label}
           </button>

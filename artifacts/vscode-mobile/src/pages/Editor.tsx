@@ -14,7 +14,7 @@ import { useBackendSync } from "@/hooks/useBackendSync";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
-const SIDEBAR_WIDTH_MOBILE = 200;
+const SIDEBAR_WIDTH_MOBILE = 260;
 
 export function EditorPage() {
   const {
@@ -101,19 +101,36 @@ export function EditorPage() {
   const sidebarWidth = isMobile ? SIDEBAR_WIDTH_MOBILE : SIDEBAR_WIDTH_DESKTOP;
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background" data-testid="editor-page">
+    <div className="flex flex-col h-dvh w-screen overflow-hidden bg-background" data-testid="editor-page">
       <TitleBar />
 
-      <div className="flex flex-1 overflow-hidden">
-        <ActivityBar />
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Activity bar — hidden on mobile (swipe opens sidebar instead) */}
+        <div className="hidden sm:flex h-full">
+          <ActivityBar />
+        </div>
 
+        {/* Sidebar — overlay on mobile, inline on desktop */}
         {sidebarVisible && (
-          <div
-            className="h-full bg-sidebar border-r border-sidebar-border shrink-0 overflow-hidden sidebar-transition"
-            style={{ width: sidebarWidth }}
-          >
-            <Sidebar width={sidebarWidth} />
-          </div>
+          <>
+            {/* Mobile overlay backdrop */}
+            {isMobile && (
+              <div
+                className="absolute inset-0 z-30 bg-black/40 sm:hidden"
+                onClick={toggleSidebar}
+              />
+            )}
+            <div
+              className={
+                isMobile
+                  ? "absolute left-0 top-0 h-full z-40 bg-sidebar border-r border-sidebar-border overflow-hidden sidebar-transition shadow-xl"
+                  : "h-full bg-sidebar border-r border-sidebar-border shrink-0 overflow-hidden sidebar-transition"
+              }
+              style={{ width: sidebarWidth }}
+            >
+              <Sidebar width={sidebarWidth} />
+            </div>
+          </>
         )}
 
         <div className="flex flex-col flex-1 overflow-hidden">

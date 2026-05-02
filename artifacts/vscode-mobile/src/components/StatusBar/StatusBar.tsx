@@ -49,8 +49,12 @@ export function StatusBar() {
 
   return (
     <div
-      className="flex items-center justify-between h-6 px-2 text-white text-xs shrink-0 select-none"
-      style={{ backgroundColor: "hsl(var(--status-bar-bg))" }}
+      className="flex items-center justify-between px-2 text-white text-xs shrink-0 select-none"
+      style={{
+        backgroundColor: "hsl(var(--status-bar-bg))",
+        height: "calc(1.5rem + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
       data-testid="status-bar"
     >
       {/* Left section */}

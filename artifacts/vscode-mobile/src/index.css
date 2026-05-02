@@ -234,10 +234,17 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
     overflow: hidden;
+    /* Safe area for notched phones (iPhone X+, Dynamic Island) */
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Instant tap — no 300ms delay on any clickable element */
+  button, a, [role="button"], [tabindex] {
+    touch-action: manipulation;
   }
 }
 

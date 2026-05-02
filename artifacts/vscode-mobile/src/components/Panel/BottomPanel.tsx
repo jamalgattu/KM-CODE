@@ -102,7 +102,7 @@ export function BottomPanel() {
             key={id}
             onClick={() => setActivePanel(id as any)}
             className={cn(
-              "flex items-center gap-1.5 px-3 h-8 text-xs cursor-pointer transition-colors relative",
+              "flex items-center gap-1.5 px-3 h-10 sm:h-8 text-xs cursor-pointer transition-colors relative touch-manipulation",
               activePanel === id
                 ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -123,11 +123,11 @@ export function BottomPanel() {
         <div className="ml-auto flex items-center pr-1">
           <button
             onClick={togglePanel}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+            className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent touch-manipulation"
             title="Close Panel"
             data-testid="close-panel"
           >
-            <X size={14} />
+            <X size={15} className="sm:w-3.5 sm:h-3.5" />
           </button>
         </div>
       </div>
