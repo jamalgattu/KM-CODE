@@ -500,7 +500,7 @@ export const useEditorStore = create<EditorStore>()(
             type: "output",
             content: `⚡ KM Code Terminal
 ─────────────────────────────
-  run         → execute current file via Piston
+  run         → execute current file via Judge0
   clear       → clear terminal
   help        → show this help
   ls          → list open files
