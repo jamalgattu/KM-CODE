@@ -12,11 +12,17 @@ import { FloatingRunButton } from "@/components/FloatingRunButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import type { AuthUser } from "@/hooks/useAuth";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
 const SIDEBAR_WIDTH_MOBILE = 260;
 
-export function EditorPage() {
+interface EditorPageProps {
+  authUser: AuthUser | null;
+  onSignOut: () => Promise<void>;
+}
+
+export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
   const {
     theme, sidebarVisible, openFile, saveCurrentFile,
     togglePanel, setActivePanel, panelVisible, toggleSidebar,
@@ -57,23 +63,14 @@ export function EditorPage() {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
-      if (meta && e.key === "s") {
-        e.preventDefault();
-        saveCurrentFile();
-      }
-      if (meta && e.key === "b") {
-        e.preventDefault();
-        toggleSidebar();
-      }
+      if (meta && e.key === "s") { e.preventDefault(); saveCurrentFile(); }
+      if (meta && e.key === "b") { e.preventDefault(); toggleSidebar(); }
       if (meta && e.key === "`") {
         e.preventDefault();
         setActivePanel("terminal");
         if (!panelVisible) togglePanel();
       }
-      if (meta && e.key === "Enter") {
-        e.preventDefault();
-        executeRun();
-      }
+      if (meta && e.key === "Enter") { e.preventDefault(); executeRun(); }
       if (meta && e.shiftKey && e.key === "E") {
         e.preventDefault();
         setActiveSidePanel("explorer");
@@ -102,7 +99,7 @@ export function EditorPage() {
 
   return (
     <div className="flex flex-col h-dvh w-screen overflow-hidden bg-background" data-testid="editor-page">
-      <TitleBar />
+      <TitleBar authUser={authUser} onSignOut={onSignOut} />
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Activity bar — hidden on mobile (swipe opens sidebar instead) */}
@@ -113,7 +110,6 @@ export function EditorPage() {
         {/* Sidebar — overlay on mobile, inline on desktop */}
         {sidebarVisible && (
           <>
-            {/* Mobile overlay backdrop */}
             {isMobile && (
               <div
                 className="absolute inset-0 z-30 bg-black/40 sm:hidden"
@@ -135,14 +131,10 @@ export function EditorPage() {
 
         <div className="flex flex-col flex-1 overflow-hidden">
           <TabBar />
-
           <div className="flex-1 overflow-hidden">
             <EditorArea />
           </div>
-
-          {/* Mobile symbol bar sits between editor and panel */}
           <MobileSymbolBar />
-
           <BottomPanel />
         </div>
       </div>
