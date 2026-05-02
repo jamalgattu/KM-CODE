@@ -11,6 +11,7 @@ import { MobileSymbolBar } from "@/components/MobileSymbolBar";
 import { FloatingRunButton } from "@/components/FloatingRunButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
 const SIDEBAR_WIDTH_MOBILE = 200;
@@ -24,6 +25,7 @@ export function EditorPage() {
   const isMobile = useIsMobile();
 
   useBackendSync();
+  useSwipeGesture();
 
   useEffect(() => {
     const root = document.documentElement;
