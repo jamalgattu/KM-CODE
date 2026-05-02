@@ -86,7 +86,7 @@ export function OutputPanel() {
       </div>
 
       {/* Output content */}
-      <div className="flex-1 overflow-y-auto terminal-output p-3 font-mono text-sm" data-testid="output-content">
+      <div className="flex-1 overflow-y-auto panel-scroll terminal-output p-3 font-mono text-sm" data-testid="output-content">
         {!hasOutput ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground select-none">
             <Play size={28} className="opacity-20" />

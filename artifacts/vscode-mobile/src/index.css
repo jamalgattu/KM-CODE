@@ -241,20 +241,56 @@
   }
 }
 
+/* ── Scrollbar design tokens ──────────────────────────────────────── */
+:root {
+  --sb-thumb: hsl(220 13% 65%);
+  --sb-thumb-hover: hsl(220 13% 50%);
+  --sb-track: transparent;
+}
+.dark {
+  --sb-thumb: hsl(220 13% 38%);
+  --sb-thumb-hover: hsl(220 13% 52%);
+  --sb-track: transparent;
+}
+
+/* ── Shared scrollbar mixin (webkit) ──────────────────────────────── */
+.cm-editor .cm-scroller,
+.panel-scroll,
+.explorer-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
 /* Editor scrollbar */
 .cm-editor .cm-scroller::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .cm-editor .cm-scroller::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--sb-track);
 }
 .cm-editor .cm-scroller::-webkit-scrollbar-thumb {
-  background: hsl(220 13% 35%);
+  background: var(--sb-thumb);
   border-radius: 4px;
 }
 .cm-editor .cm-scroller::-webkit-scrollbar-thumb:hover {
-  background: hsl(220 13% 45%);
+  background: var(--sb-thumb-hover);
+}
+
+/* Panel (output / terminal) scrollbar */
+.panel-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.panel-scroll::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 3px;
+}
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
 }
 
 /* CodeMirror editor styling */
@@ -303,16 +339,19 @@
   user-select: text;
 }
 
-/* Thin scrollbar for explorer */
+/* Explorer scrollbar — width only; colors come from shared tokens above */
 .explorer-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 .explorer-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--sb-track);
 }
 .explorer-scroll::-webkit-scrollbar-thumb {
-  background: hsl(220 13% 35%);
+  background: var(--sb-thumb);
   border-radius: 2px;
+}
+.explorer-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
 }
 
 /* Tab overflow */
