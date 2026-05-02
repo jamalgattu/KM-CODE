@@ -8,6 +8,7 @@ import { EditorArea } from "@/components/Editor/EditorArea";
 import { BottomPanel } from "@/components/Panel/BottomPanel";
 import { StatusBar } from "@/components/StatusBar/StatusBar";
 import { MobileSymbolBar } from "@/components/MobileSymbolBar";
+import { FloatingRunButton } from "@/components/FloatingRunButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
 
@@ -127,6 +128,7 @@ export function EditorPage() {
         </div>
       </div>
 
+      <FloatingRunButton />
       <StatusBar />
     </div>
   );
