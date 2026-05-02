@@ -58,7 +58,7 @@ export function Terminal() {
       </div>
 
       <div
-        className="flex-1 overflow-y-auto terminal-output p-2 bg-background cursor-text"
+        className="flex-1 min-h-0 overflow-y-auto panel-scroll terminal-output p-2 bg-background cursor-text"
         onClick={() => inputRef.current?.focus()}
         data-testid="terminal-output"
       >
