@@ -118,7 +118,7 @@ export function SettingsPanel() {
         <div className="space-y-3">
           {[
             { key: "wordWrap", label: "Word Wrap", value: wordWrap, setter: setWordWrap },
-            { key: "minimap", label: "Minimap", value: minimap, setter: setMinimap },
+            { key: "minimap", label: "Minimap (desktop only)", value: minimap, setter: setMinimap },
             { key: "lineNumbers", label: "Line Numbers", value: lineNumbers, setter: setLineNumbers },
             { key: "autoSave", label: "Auto Save", value: autoSave, setter: setAutoSave },
           ].map(({ key, label, value, setter }) => (
@@ -149,7 +149,7 @@ export function SettingsPanel() {
             <div>VS Code for Mobile</div>
             <div>Built with CodeMirror 6</div>
             <div className="mt-2 text-xs">
-              <a href="#" className="text-primary hover:underline">View on GitHub</a>
+              <a href="https://github.com/jamalgattu/KM-CODE" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View on GitHub</a>
             </div>
           </div>
         </div>

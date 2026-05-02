@@ -3,7 +3,7 @@ import {
   EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
   drawSelection, rectangularSelection, crosshairCursor, dropCursor,
 } from "@codemirror/view";
-import { EditorState, StateEffect } from "@codemirror/state";
+import { Compartment, EditorState, StateEffect } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import {
   indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
@@ -37,7 +37,6 @@ interface CodeEditorProps {
   onCursorChange?: (line: number, col: number) => void;
 }
 
-// Rich light-theme highlight style
 const lightHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword,               color: "#7c3aed", fontWeight: "bold" },
   { tag: tags.controlKeyword,        color: "#7c3aed", fontWeight: "bold" },
@@ -87,32 +86,20 @@ function getLanguageExtension(language: string) {
     case "javascript":
     case "typescript":
       return javascript({ typescript: language === "typescript", jsx: true });
-    case "python":
-      return python();
+    case "python":      return python();
     case "css":
-    case "scss":
-      return css();
-    case "html":
-      return html();
-    case "json":
-      return json();
-    case "markdown":
-      return markdown();
-    case "sql":
-      return sql();
-    case "rust":
-      return rust();
-    case "java":
-      return java();
+    case "scss":        return css();
+    case "html":        return html();
+    case "json":        return json();
+    case "markdown":    return markdown();
+    case "sql":         return sql();
+    case "rust":        return rust();
+    case "java":        return java();
     case "cpp":
-    case "c":
-      return cpp();
-    case "php":
-      return php();
-    case "xml":
-      return xml();
-    default:
-      return [];
+    case "c":           return cpp();
+    case "php":         return php();
+    case "xml":         return xml();
+    default:            return [];
   }
 }
 
@@ -122,31 +109,23 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   const contentRef = useRef(content);
   const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers, fontFamily } = useEditorStore();
 
-  const getThemeExtensions = useCallback(() => {
-    if (theme === "dark") {
-      return [oneDark];
-    }
+  // Compartments for dynamic reconfiguration without rebuilding the whole editor
+  const wordWrapComp   = useRef(new Compartment());
+  const lineNumsComp   = useRef(new Compartment());
+  const tabSizeComp    = useRef(new Compartment());
 
+  const getThemeExtensions = useCallback(() => {
+    if (theme === "dark") return [oneDark];
     return [
       EditorView.theme({
-        "&": {
-          backgroundColor: "hsl(220 14% 98%)",
-          color: "#334155",
-          fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
-        },
+        "&": { backgroundColor: "hsl(220 14% 98%)", color: "#334155", fontFamily: `${fontFamily}, JetBrains Mono, monospace` },
         ".cm-content": { caretColor: "#7c3aed" },
         "&.cm-focused .cm-cursor": { borderLeftColor: "#7c3aed" },
-        ".cm-gutters": {
-          backgroundColor: "hsl(220 14% 94%)",
-          color: "#94a3b8",
-          borderRight: "1px solid hsl(220 13% 87%)",
-        },
+        ".cm-gutters": { backgroundColor: "hsl(220 14% 94%)", color: "#94a3b8", borderRight: "1px solid hsl(220 13% 87%)" },
         ".cm-lineNumbers .cm-gutterElement": { padding: "0 8px 0 4px" },
         ".cm-activeLineGutter": { backgroundColor: "hsl(220 80% 95%)" },
         ".cm-activeLine": { backgroundColor: "hsl(220 80% 97%)" },
-        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
-          backgroundColor: "#bfdbfe",
-        },
+        "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": { backgroundColor: "#bfdbfe" },
         ".cm-foldPlaceholder": { backgroundColor: "#e0e7ff", color: "#4338ca", border: "1px solid #c7d2fe" },
         ".cm-searchMatch": { backgroundColor: "#fef08a", outline: "1px solid #facc15" },
         ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "#fde047" },
@@ -158,10 +137,10 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
     ];
   }, [theme, fontFamily]);
 
-  // Keep a ref to `onChange` so the updateListener closure is never stale
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  // Main editor setup — rebuilds only when file, language, or theme changes
   useEffect(() => {
     if (!editorRef.current) return;
 
@@ -189,15 +168,16 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         ...lintKeymap,
         indentWithTab,
       ]),
-      EditorState.tabSize.of(tabSize),
-      wordWrap ? EditorView.lineWrapping : [],
+      // Compartment-wrapped dynamic settings
+      wordWrapComp.current.of(wordWrap ? EditorView.lineWrapping : []),
+      lineNumsComp.current.of(showLineNumbers ? lineNumbers() : []),
+      tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
       ...getThemeExtensions(),
-      showLineNumbers ? lineNumbers() : [],
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           const newContent = update.state.doc.toString();
           contentRef.current = newContent;
-          onChangeRef.current(newContent); // always call the latest onChange
+          onChangeRef.current(newContent);
         }
         if (update.selectionSet || update.docChanged) {
           if (onCursorChange) {
@@ -208,17 +188,8 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         }
       }),
       EditorView.theme({
-        "&": {
-          fontSize: `${fontSize}px`,
-          fontFamily: `${fontFamily}, JetBrains Mono, monospace`,
-          height: "100%",
-        },
-        ".cm-scroller": {
-          fontFamily: "inherit",
-          overflow: "auto",
-          WebkitOverflowScrolling: "touch",
-          touchAction: "pan-y",
-        },
+        "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace`, height: "100%" },
+        ".cm-scroller": { fontFamily: "inherit", overflow: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y" },
         ".cm-content": { touchAction: "pan-y" },
       }),
       langExt,
@@ -235,8 +206,10 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       view.destroy();
       viewRef.current = null;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileId, language, theme]);
 
+  // Sync content from store when it changes externally (e.g. auto-save reload)
   useEffect(() => {
     if (!viewRef.current || content === contentRef.current) return;
     contentRef.current = content;
@@ -244,6 +217,25 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       changes: { from: 0, to: viewRef.current.state.doc.length, insert: content },
     });
   }, [fileId, content]);
+
+  // Dynamic reconfigure — these DON'T rebuild the editor; compartments handle it live
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: wordWrapComp.current.reconfigure(wordWrap ? EditorView.lineWrapping : []),
+    });
+  }, [wordWrap]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: lineNumsComp.current.reconfigure(showLineNumbers ? lineNumbers() : []),
+    });
+  }, [showLineNumbers]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: tabSizeComp.current.reconfigure(EditorState.tabSize.of(tabSize)),
+    });
+  }, [tabSize]);
 
   useEffect(() => {
     if (!viewRef.current) return;

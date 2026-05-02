@@ -14,7 +14,10 @@ const ALL_RUNNABLE_LANGS = new Set([
 const PREVIEW_LANGS = new Set(["html", "markdown"]);
 
 export function EditorArea() {
-  const { openTabs, activeTabId, files, updateFileContent, executeRun, isRunning, togglePanel, panelVisible, setActivePanel } = useEditorStore();
+  const {
+    openTabs, activeTabId, files, updateFileContent, executeRun, isRunning,
+    togglePanel, panelVisible, setActivePanel, toggleSidebar, setActiveSidePanel, sidebarVisible,
+  } = useEditorStore();
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [previewVisible, setPreviewVisible] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -37,6 +40,7 @@ export function EditorArea() {
 
   const handleRun = () => {
     if (!activeTab || isRunning) return;
+    setActivePanel("output");
     if (!panelVisible) togglePanel();
     executeRun();
   };
@@ -90,13 +94,30 @@ export function EditorArea() {
 
         <div className="grid grid-cols-2 gap-2 max-w-sm px-4">
           {[
-            { label: "New File", hint: "Create a file with a starter template" },
-            { label: "Open Terminal", hint: "Type 'run' to execute code" },
-            { label: "Search Files", hint: "Find across all open files" },
-            { label: "Source Control", hint: "View git changes" },
-          ].map(({ label, hint }) => (
+            {
+              label: "New File",
+              hint: "Create a file with a starter template",
+              action: () => { if (!sidebarVisible) toggleSidebar(); setActiveSidePanel("explorer"); },
+            },
+            {
+              label: "Open Terminal",
+              hint: "Type 'run' to execute code",
+              action: () => { setActivePanel("terminal"); if (!panelVisible) togglePanel(); },
+            },
+            {
+              label: "Search Files",
+              hint: "Find across all open files",
+              action: () => { if (!sidebarVisible) toggleSidebar(); setActiveSidePanel("search"); },
+            },
+            {
+              label: "Source Control",
+              hint: "View git changes",
+              action: () => { if (!sidebarVisible) toggleSidebar(); setActiveSidePanel("git"); },
+            },
+          ].map(({ label, hint, action }) => (
             <button
               key={label}
+              onClick={action}
               className="text-left p-3 rounded-lg border border-border hover:bg-sidebar-accent transition-colors"
             >
               <div className="text-sm font-medium text-foreground">{label}</div>
