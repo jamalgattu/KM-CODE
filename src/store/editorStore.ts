@@ -150,6 +150,8 @@ interface EditorStore extends EditorState {
   addProblem: (problem: Omit<Problem, "id">) => void;
 
   saveCurrentFile: () => void;
+  saveAllFiles: () => void;
+  stopRun: () => void;
   setFilesFromApi: (files: FileNode[]) => void;
 }
 
@@ -726,6 +728,28 @@ Supported languages: JS, TS, Python, Java, C++, C,
             t.id === state.activeTabId ? { ...t, isModified: false } : t
           ),
         }));
+      },
+
+      saveAllFiles: () => {
+        const state = get();
+        for (const tab of state.openTabs) {
+          const file = findFileById(state.files, tab.fileId);
+          if (file && file.content !== undefined) {
+            try {
+              localStorage.setItem(
+                `km-file-${file.path}`,
+                JSON.stringify({ content: file.content, savedAt: Date.now() })
+              );
+            } catch {}
+          }
+        }
+        set((s) => ({
+          openTabs: s.openTabs.map((t) => ({ ...t, isModified: false })),
+        }));
+      },
+
+      stopRun: () => {
+        set({ isRunning: false });
       },
 
       setFilesFromApi: (files) => {

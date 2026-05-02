@@ -4,6 +4,7 @@ import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { undoEditor, redoEditor, openFindPanel, selectAllEditor } from "@/lib/editorView";
 import type { AuthUser } from "@/hooks/useAuth";
 
 const MENU_ITEMS = {
@@ -65,8 +66,8 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
   const [signingOut, setSigningOut] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const {
-    saveCurrentFile, togglePanel, setActivePanel, panelVisible,
-    toggleSidebar, setActiveSidePanel, autoSave, setAutoSave,
+    saveCurrentFile, saveAllFiles, stopRun, togglePanel, setActivePanel, panelVisible,
+    toggleSidebar, setSidebarVisible, sidebarVisible, setActiveSidePanel, autoSave, setAutoSave,
     setTheme, theme, openTabs, activeTabId, files,
     executeRun, isRunning,
   } = useEditorStore();
@@ -104,23 +105,40 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
     executeRun();
   };
 
+  const openExplorer = () => {
+    setActiveSidePanel("explorer");
+    if (!sidebarVisible) setSidebarVisible(true);
+  };
+
   const handleMenuAction = (label: string) => {
     setOpenMenu(null);
     switch (label) {
+      case "New File":
+      case "New Folder":
+        openExplorer();
+        break;
       case "Save": saveCurrentFile(); break;
-      case "Save All": openTabs.forEach(() => saveCurrentFile()); break;
+      case "Save All": saveAllFiles(); break;
       case "Auto Save": setAutoSave(!autoSave); break;
       case "Download File": handleDownload(); break;
+      case "Undo": undoEditor(); break;
+      case "Redo": redoEditor(); break;
+      case "Find":
+      case "Replace":
+        openFindPanel();
+        break;
+      case "Select All": selectAllEditor(); break;
       case "Terminal": setActivePanel("terminal"); if (!panelVisible) togglePanel(); break;
       case "Problems": setActivePanel("problems"); if (!panelVisible) togglePanel(); break;
       case "Preview": setActivePanel("preview" as never); if (!panelVisible) togglePanel(); break;
       case "Toggle Sidebar": toggleSidebar(); break;
       case "Toggle Theme": setTheme(theme === "dark" ? "light" : "dark"); break;
-      case "Explorer": setActiveSidePanel("explorer"); break;
-      case "Search": setActiveSidePanel("search"); break;
-      case "Source Control": setActiveSidePanel("git"); break;
-      case "Extensions": setActiveSidePanel("extensions"); break;
+      case "Explorer": openExplorer(); break;
+      case "Search": setActiveSidePanel("search"); if (!sidebarVisible) setSidebarVisible(true); break;
+      case "Source Control": setActiveSidePanel("git"); if (!sidebarVisible) setSidebarVisible(true); break;
+      case "Extensions": setActiveSidePanel("extensions"); if (!sidebarVisible) setSidebarVisible(true); break;
       case "Run Code": handleRunCode(); break;
+      case "Stop": stopRun(); break;
       case "Keyboard Shortcuts": setShortcutsOpen(true); break;
     }
   };
