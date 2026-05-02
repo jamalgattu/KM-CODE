@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { CodeEditor } from "./CodeEditor";
+import { LivePreview } from "./LivePreview";
 import { Files, Play, Loader2, Download, Copy, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,8 @@ const ALL_RUNNABLE_LANGS = new Set([
   "javascript", "typescript", "python", "python3", "bash", "sh", "shell",
   "java", "cpp", "c", "rust", "go", "php", "ruby", "swift",
 ]);
+
+const PREVIEW_LANGS = new Set(["html", "markdown"]);
 
 export function EditorArea() {
   const { openTabs, activeTabId, files, updateFileContent, executeRun, isRunning, togglePanel, panelVisible, setActivePanel } = useEditorStore();
@@ -55,14 +58,6 @@ export function EditorArea() {
     await navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  };
-
-  const handlePreviewToggle = () => {
-    if (!previewVisible) {
-      setActivePanel("preview" as any);
-      if (!panelVisible) togglePanel();
-    }
-    setPreviewVisible(!previewVisible);
   };
 
   if (!activeTab) {
@@ -113,8 +108,9 @@ export function EditorArea() {
   }
 
   const content = getFileContent(activeTab.fileId);
-  const canRun = ALL_RUNNABLE_LANGS.has((activeTab.language || "").toLowerCase());
-  const isHTML = (activeTab.language || "").toLowerCase() === "html";
+  const lang = (activeTab.language || "").toLowerCase();
+  const canRun = ALL_RUNNABLE_LANGS.has(lang);
+  const canPreview = PREVIEW_LANGS.has(lang);
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
@@ -135,17 +131,19 @@ export function EditorArea() {
             {cursor.line}:{cursor.col}
           </span>
 
-          {/* HTML Preview toggle */}
-          {isHTML && (
+          {/* Preview toggle — always visible for HTML/Markdown */}
+          {canPreview && (
             <button
-              onClick={() => {
-                setActivePanel("preview" as any);
-                if (!panelVisible) togglePanel();
-              }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-600/30"
-              title="Toggle HTML Preview"
+              onClick={() => setPreviewVisible((v) => !v)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors border",
+                previewVisible
+                  ? "bg-blue-600/25 text-blue-400 border-blue-600/40"
+                  : "bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border-blue-600/20"
+              )}
+              title={previewVisible ? "Hide Preview" : "Show Split Preview"}
             >
-              <Eye size={11} />
+              {previewVisible ? <EyeOff size={11} /> : <Eye size={11} />}
               Preview
             </button>
           )}
@@ -195,16 +193,30 @@ export function EditorArea() {
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
-        <CodeEditor
-          key={activeTab.fileId}
-          fileId={activeTab.fileId}
-          content={content}
-          language={activeTab.language}
-          onChange={(newContent) => updateFileContent(activeTab.fileId, newContent)}
-          onCursorChange={(line, col) => setCursor({ line, col })}
-        />
+      {/* Editor + optional split preview */}
+      <div className={cn("flex-1 overflow-hidden", previewVisible && canPreview ? "flex" : "block")}>
+        {/* Editor pane */}
+        <div className={cn("overflow-hidden", previewVisible && canPreview ? "flex-1 min-w-0" : "h-full")}>
+          <CodeEditor
+            key={activeTab.fileId}
+            fileId={activeTab.fileId}
+            content={content}
+            language={activeTab.language}
+            onChange={(newContent) => updateFileContent(activeTab.fileId, newContent)}
+            onCursorChange={(line, col) => setCursor({ line, col })}
+          />
+        </div>
+
+        {/* Live preview pane */}
+        {previewVisible && canPreview && (
+          <div className="w-1/2 min-w-0 overflow-hidden shrink-0">
+            <LivePreview
+              content={content}
+              language={lang}
+              fileName={activeTab.fileName}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
