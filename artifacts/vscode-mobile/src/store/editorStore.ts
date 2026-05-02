@@ -513,20 +513,23 @@ Supported languages: JS, TS, Python, Java, C++, C,
 
         const file = findFileById(state.files, activeTab.fileId);
 
-        // Prefer store content; fall back to the live editor view if store is stale
-        let fileContent = file?.content ?? "";
-        if (!fileContent.trim()) {
-          const liveView = getCurrentEditorView();
-          if (liveView) fileContent = liveView.state.doc.toString();
+        // Always read from live editor view first — most up-to-date regardless
+        // of whether the Zustand store has been synced (stale closure safety net)
+        const liveView = getCurrentEditorView();
+        let fileContent = liveView ? liveView.state.doc.toString() : (file?.content ?? "");
+        // Secondary fallback: store content if live view is empty
+        if (!fileContent.trim() && file?.content?.trim()) {
+          fileContent = file.content;
         }
 
-        if (!file || !fileContent.trim()) {
+        if (!fileContent.trim()) {
           addTerminalLine({ type: "error", content: "File is empty — add some code first." });
           set({ panelVisible: true, activePanel: "terminal" });
           return;
         }
 
-        const lang = (file.language ?? "javascript").toLowerCase();
+        // Derive language from tab first (EditorArea already applies getLanguageFromPath fallback)
+        const lang = (activeTab.language || file?.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
         const runtime = LANGUAGE_RUNTIME[lang];
         if (!runtime) {
           addTerminalLine({
@@ -545,9 +548,10 @@ Supported languages: JS, TS, Python, Java, C++, C,
           panelVisible: true,
           isRunning: true,
         });
-        addOutputLine({ type: "system", content: `▶  ${file.name}  ·  ${lang}` });
+        const fileName = file?.name ?? activeTab.fileName;
+        addOutputLine({ type: "system", content: `▶  ${fileName}  ·  ${lang}` });
         addOutputLine({ type: "system", content: "─".repeat(40) });
-        addTerminalLine({ type: "info", content: `▶ Running ${file.name} (${lang})...` });
+        addTerminalLine({ type: "info", content: `▶ Running ${fileName} (${lang})...` });
 
         fetch(`${PISTON_URL}/execute`, {
           method: "POST",
@@ -599,7 +603,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
             });
 
             set({
-              outputMeta: { exitCode, durationMs, language: lang, fileName: file.name },
+              outputMeta: { exitCode, durationMs, language: lang, fileName },
               isRunning: false,
             });
           })
