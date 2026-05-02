@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useEditorStore } from "@/store/editorStore";
+import { getLanguageFromPath } from "@/types/editor";
 import { CodeEditor } from "./CodeEditor";
 import { LivePreview } from "./LivePreview";
 import { Files, Play, Loader2, Download, Copy, Eye, EyeOff } from "lucide-react";
@@ -108,7 +109,8 @@ export function EditorArea() {
   }
 
   const content = getFileContent(activeTab.fileId);
-  const lang = (activeTab.language || "").toLowerCase();
+  // Always resolve language — old persisted tabs may have language: undefined
+  const lang = (activeTab.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
   const canRun = ALL_RUNNABLE_LANGS.has(lang);
   const canPreview = PREVIEW_LANGS.has(lang);
 
@@ -207,7 +209,7 @@ export function EditorArea() {
             key={activeTab.fileId}
             fileId={activeTab.fileId}
             content={content}
-            language={activeTab.language}
+            language={lang}
             onChange={(newContent) => updateFileContent(activeTab.fileId, newContent)}
             onCursorChange={(line, col) => setCursor({ line, col })}
           />
