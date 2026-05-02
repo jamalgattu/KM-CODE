@@ -17,19 +17,18 @@ A free mobile-first code editor for everyone.
 ## Getting Started
 1. Click the **+** button to create a new file (with starter templates!)
 2. Select a language and start coding
-3. Hit the **Run** button or type \`run\` in the terminal to execute your code
-4. Sign in with Google to save files to cloud
+3. Hit the **Run** button or press \`Ctrl+Enter\` to execute your code
 
 ## Supported Languages
 JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
 
-## New Features
+## Features
+- **Syntax Highlighting** — VS Code-like colors for all languages
 - **Templates** — create files with pre-filled starter code
-- **HTML Preview** — live preview for HTML files in the Preview panel
+- **HTML Preview** — live preview for HTML files
 - **Mobile Symbol Bar** — quick-insert coding symbols on mobile
-- **Download** — save any file to your device
-- **Keyboard Shortcuts** — click the keyboard icon in the toolbar
-- **Copy Code** — copy entire file to clipboard
+- **Download / Copy** — save or copy any file instantly
+- **Swipe Gestures** — swipe right to open sidebar, left to close
 
 ## Keyboard Shortcuts
 - \`Ctrl+S\` → Save file
@@ -46,6 +45,50 @@ JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
 - \`ls\` → list files
 
 Happy coding! 🚀
+`,
+  },
+  {
+    id: "demo-python",
+    name: "demo.py",
+    type: "file",
+    path: "/demo.py",
+    language: "python",
+    content: `# KM Code — syntax highlighting demo
+# Hit Run (or Ctrl+Enter) to execute!
+
+class Animal:
+    def __init__(self, name: str, sound: str):
+        self.name = name
+        self.sound = sound
+
+    def speak(self) -> str:
+        return f"{self.name} says {self.sound}!"
+
+    def __repr__(self) -> str:
+        return f"Animal(name={self.name!r})"
+
+
+def fibonacci(n: int) -> list[int]:
+    """Return the first n Fibonacci numbers."""
+    seq = [0, 1]
+    for _ in range(n - 2):
+        seq.append(seq[-1] + seq[-2])
+    return seq[:n]
+
+
+# --- main ---
+animals = [
+    Animal("Dog", "Woof"),
+    Animal("Cat", "Meow"),
+    Animal("Cow", "Moo"),
+]
+
+for animal in animals:
+    print(animal.speak())
+
+print()
+print("Fibonacci:", fibonacci(10))
+print("Done! ✓")
 `,
   },
 ];
@@ -168,8 +211,10 @@ export const useEditorStore = create<EditorStore>()(
   persist(
     (set, get) => ({
       files: DEFAULT_FILES,
-      openTabs: [],
-      activeTabId: null,
+      openTabs: [
+        { id: "tab-demo-python", fileId: "demo-python", fileName: "demo.py", filePath: "/demo.py", language: "python", isModified: false, isPinned: false },
+      ],
+      activeTabId: "tab-demo-python",
       theme: "dark",
       fontSize: 14,
       tabSize: 2,
