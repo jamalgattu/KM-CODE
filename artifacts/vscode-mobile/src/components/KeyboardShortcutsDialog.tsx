@@ -37,19 +37,33 @@ const SHORTCUTS = [
   ]},
 ];
 
-export function KeyboardShortcutsDialog() {
-  const [open, setOpen] = useState(false);
+interface KeyboardShortcutsDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function KeyboardShortcutsDialog({ open: controlledOpen, onOpenChange }: KeyboardShortcutsDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (val: boolean) => {
+    if (isControlled) onOpenChange?.(val);
+    else setInternalOpen(val);
+  };
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
-        title="Keyboard Shortcuts"
-        data-testid="shortcuts-button"
-      >
-        <Keyboard size={15} />
-      </button>
+      {!isControlled && (
+        <button
+          onClick={() => setOpen(true)}
+          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          title="Keyboard Shortcuts"
+          data-testid="shortcuts-button"
+        >
+          <Keyboard size={15} />
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

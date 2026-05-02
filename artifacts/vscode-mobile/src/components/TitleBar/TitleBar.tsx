@@ -43,6 +43,15 @@ const MENU_ITEMS = {
     { label: "Run Code", shortcut: "⌘⏎" },
     { label: "Stop", shortcut: "⌘." },
   ],
+  Settings: [
+    { label: "Toggle Theme", shortcut: "" },
+    { label: "Auto Save", shortcut: "", toggle: "autoSave" },
+    { type: "separator" },
+    { label: "Explorer", shortcut: "⌘⇧E" },
+    { label: "Extensions", shortcut: "⌘⇧X" },
+    { type: "separator" },
+    { label: "Keyboard Shortcuts", shortcut: "" },
+  ],
 };
 
 interface TitleBarProps {
@@ -54,6 +63,7 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const {
     saveCurrentFile, togglePanel, setActivePanel, panelVisible,
     toggleSidebar, setActiveSidePanel, autoSave, setAutoSave,
@@ -111,6 +121,7 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
       case "Source Control": setActiveSidePanel("git"); break;
       case "Extensions": setActiveSidePanel("extensions"); break;
       case "Run Code": handleRunCode(); break;
+      case "Keyboard Shortcuts": setShortcutsOpen(true); break;
     }
   };
 
@@ -187,7 +198,7 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
 
       {/* Right actions */}
       <div className="flex items-center gap-0 sm:gap-0.5 px-1 sm:px-2">
-        <span className="hidden sm:block"><KeyboardShortcutsDialog /></span>
+        <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
         <button
           onClick={saveCurrentFile}
@@ -283,12 +294,6 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-sidebar-accent text-foreground transition-colors"
                   >
                     Toggle {theme === "dark" ? "Light" : "Dark"} Theme
-                  </button>
-                  <button
-                    onClick={() => { setUserMenuOpen(false); setActiveSidePanel("settings"); }}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-sidebar-accent text-foreground transition-colors"
-                  >
-                    Settings
                   </button>
                 </div>
 
