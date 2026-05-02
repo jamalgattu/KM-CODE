@@ -143,22 +143,25 @@ function findParentAndRemove(nodes: FileNode[], id: string): boolean {
   return false;
 }
 
-const PISTON_URL = "https://emkc.org/api/v2/piston";
-const LANGUAGE_RUNTIME: Record<string, { language: string; version: string; filename: string }> = {
-  javascript: { language: "javascript", version: "18.15.0", filename: "index.js"   },
-  typescript: { language: "typescript", version: "5.0.3",   filename: "index.ts"   },
-  python:     { language: "python",     version: "3.10.0",  filename: "main.py"    },
-  java:       { language: "java",       version: "15.0.2",  filename: "Main.java"  },
-  cpp:        { language: "c++",        version: "10.2.0",  filename: "main.cpp"   },
-  c:          { language: "c",          version: "10.2.0",  filename: "main.c"     },
-  rust:       { language: "rust",       version: "1.50.0",  filename: "main.rs"    },
-  bash:       { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
-  sh:         { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
-  shell:      { language: "bash",       version: "5.2.0",   filename: "script.sh"  },
-  php:        { language: "php",        version: "8.2.3",   filename: "index.php"  },
-  go:         { language: "go",         version: "1.16.2",  filename: "main.go"    },
-  ruby:       { language: "ruby",       version: "3.0.1",   filename: "main.rb"    },
-  swift:      { language: "swift",      version: "5.3.3",   filename: "main.swift" },
+// Judge0 Community Edition — free public API, verified working 2026
+// https://ce.judge0.com  (replaced Piston which went whitelist-only Feb 2026)
+const JUDGE0_URL = "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
+const JUDGE0_LANGS: Record<string, number> = {
+  javascript: 63,
+  typescript: 74,
+  python:     71,
+  python3:    71,
+  java:       62,
+  cpp:        54,
+  c:          50,
+  rust:       73,
+  bash:       46,
+  sh:         46,
+  shell:      46,
+  php:        68,
+  go:         60,
+  ruby:       72,
+  swift:      83,
 };
 
 export const useEditorStore = create<EditorStore>()(
@@ -530,11 +533,11 @@ Supported languages: JS, TS, Python, Java, C++, C,
 
         // Derive language from tab first (EditorArea already applies getLanguageFromPath fallback)
         const lang = (activeTab.language || file?.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
-        const runtime = LANGUAGE_RUNTIME[lang];
-        if (!runtime) {
+        const languageId = JUDGE0_LANGS[lang];
+        if (!languageId) {
           addTerminalLine({
             type: "error",
-            content: `"${lang}" cannot be executed. Supported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
+            content: `"${lang}" cannot be executed. Supported: ${Object.keys(JUDGE0_LANGS).filter((k,i,a)=>a.indexOf(k)===i).join(", ")}`,
           });
           set({ panelVisible: true, activePanel: "terminal" });
           return;
@@ -553,53 +556,56 @@ Supported languages: JS, TS, Python, Java, C++, C,
         addOutputLine({ type: "system", content: "─".repeat(40) });
         addTerminalLine({ type: "info", content: `▶ Running ${fileName} (${lang})...` });
 
-        fetch(`${PISTON_URL}/execute`, {
+        // Judge0 CE — synchronous submission (wait=true returns result immediately)
+        fetch(JUDGE0_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            language: runtime.language,
-            version: runtime.version,
-            files: [{ name: runtime.filename, content: fileContent }],
-            run_timeout: 10000,
-            compile_timeout: 10000,
+            source_code: fileContent,
+            language_id: languageId,
           }),
         })
           .then((r) => r.json())
           .then((data) => {
-            const run = data.run ?? {};
-            const compile = data.compile ?? {};
             const durationMs = Date.now() - startMs;
-            const exitCode = run.code ?? 0;
+            // Judge0 status: 3=Accepted, 6=Compile Error, others=Runtime Error
+            const statusId: number = data.status?.id ?? 0;
+            const accepted = statusId === 3;
+            const exitCode = accepted ? 0 : statusId;
 
-            if (compile.stderr) {
-              compile.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+            // Compile error takes priority
+            if (data.compile_output) {
+              data.compile_output.split("\n").filter(Boolean).forEach((l: string) => {
                 addOutputLine({ type: "stderr", content: l });
                 addTerminalLine({ type: "error", content: l });
               });
             } else {
-              if (run.stdout) {
-                run.stdout.split("\n").forEach((l: string) => {
+              if (data.stdout) {
+                data.stdout.split("\n").forEach((l: string) => {
                   addOutputLine({ type: "stdout", content: l });
                   addTerminalLine({ type: "output", content: l });
                 });
               }
-              if (run.stderr) {
-                run.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+              if (data.stderr) {
+                data.stderr.split("\n").filter(Boolean).forEach((l: string) => {
                   addOutputLine({ type: "stderr", content: l });
                   addTerminalLine({ type: "error", content: l });
                 });
               }
+              if (!accepted && data.status?.description) {
+                addOutputLine({ type: "stderr", content: `Runtime: ${data.status.description}` });
+              }
             }
 
             addOutputLine({ type: "system", content: "─".repeat(40) });
-            if (exitCode === 0) {
+            if (accepted) {
               addOutputLine({ type: "success", content: `✓  Exited 0  ·  ${durationMs}ms` });
             } else {
-              addOutputLine({ type: "failure", content: `✗  Exited ${exitCode}  ·  ${durationMs}ms` });
+              addOutputLine({ type: "failure", content: `✗  ${data.status?.description ?? "Error"}  ·  ${durationMs}ms` });
             }
             addTerminalLine({
-              type: exitCode === 0 ? "info" : "error",
-              content: `─── Exited ${exitCode} (${durationMs}ms) ───`,
+              type: accepted ? "info" : "error",
+              content: `─── ${accepted ? "Exited 0" : data.status?.description ?? "Error"} (${durationMs}ms) ───`,
             });
 
             set({
