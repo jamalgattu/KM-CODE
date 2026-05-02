@@ -17,19 +17,18 @@ A free mobile-first code editor for everyone.
 ## Getting Started
 1. Click the **+** button to create a new file (with starter templates!)
 2. Select a language and start coding
-3. Hit the **Run** button or type \`run\` in the terminal to execute your code
-4. Sign in with Google to save files to cloud
+3. Hit the **Run** button or press \`Ctrl+Enter\` to execute your code
 
 ## Supported Languages
 JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
 
-## New Features
+## Features
+- **Syntax Highlighting** — VS Code-like colors for all languages
 - **Templates** — create files with pre-filled starter code
-- **HTML Preview** — live preview for HTML files in the Preview panel
+- **HTML Preview** — live preview for HTML files
 - **Mobile Symbol Bar** — quick-insert coding symbols on mobile
-- **Download** — save any file to your device
-- **Keyboard Shortcuts** — click the keyboard icon in the toolbar
-- **Copy Code** — copy entire file to clipboard
+- **Download / Copy** — save or copy any file instantly
+- **Swipe Gestures** — swipe right to open sidebar, left to close
 
 ## Keyboard Shortcuts
 - \`Ctrl+S\` → Save file
@@ -46,7 +45,43 @@ JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
 - \`ls\` → list files
 
 Happy coding! 🚀
-`}];function Vs(){return Math.random().toString(36).substring(2,11)}function BO(i,e){for(const t of i){if(t.id===e)return t;if(t.children){const O=BO(t.children,e);if(O)return O}}return null}function xu(i){const e=[];for(const t of i)t.type==="file"&&e.push(t),t.children&&e.push(...xu(t.children));return e}function _T(i,e){for(let t=0;t<i.length;t++){if(i[t].id===e)return i.splice(t,1),!0;if(i[t].children&&_T(i[t].children,e))return!0}return!1}const LV="https://ce.judge0.com/submissions?base64_encoded=false&wait=true",Ry={javascript:63,typescript:74,python:71,python3:71,java:62,cpp:54,c:50,rust:73,bash:46,sh:46,shell:46,php:68,go:60,ruby:72,swift:83},ht=PV()(XV((i,e)=>({files:DV,openTabs:[],activeTabId:null,theme:"dark",fontSize:14,tabSize:2,wordWrap:!1,minimap:!1,lineNumbers:!0,autoSave:!0,fontFamily:"JetBrains Mono",sidebarVisible:!0,panelVisible:!1,panelHeight:typeof window<"u"&&window.innerWidth<640?280:220,activePanel:"terminal",activeSidePanel:"explorer",searchQuery:"",searchResults:[],gitBranch:"main",problems:[],terminalLines:[{id:"welcome",type:"info",content:"⚡ KM Code Terminal — type 'help' for commands.",timestamp:Date.now()}],outputLines:[],outputMeta:null,isRunning:!1,getFileById:t=>BO(e().files,t),getAllFiles:()=>xu(e().files),addFile:(t,O,n)=>{const s=Vs();return i(l=>{const o=JSON.parse(JSON.stringify(l.files)),u=BO(o,t);if(u&&u.type==="folder"){u.children||(u.children=[]);const h=`${u.path}/${O}`,d=En(h);u.children.push({id:s,name:O,type:n,path:h,language:n==="file"?d:void 0,content:n==="file"?"":void 0,children:n==="folder"?[]:void 0,isOpen:n==="folder"?!1:void 0})}else{const h=`/${O}`,d=En(h);o.push({id:s,name:O,type:n,path:h,language:n==="file"?d:void 0,content:n==="file"?"":void 0,children:n==="folder"?[]:void 0,isOpen:n==="folder"?!1:void 0})}return{files:o}}),s},deleteFile:t=>{i(O=>{const n=JSON.parse(JSON.stringify(O.files));_T(n,t);const s=O.openTabs.filter(o=>o.fileId!==t),l=O.activeTabId&&O.openTabs.find(o=>o.id===O.activeTabId)?.fileId===t?s[s.length-1]?.id||null:O.activeTabId;return{files:n,openTabs:s,activeTabId:l}})},renameFile:(t,O)=>{i(n=>{const s=JSON.parse(JSON.stringify(n.files)),l=BO(s,t);if(l){l.name=O;const u=l.path.split("/");u[u.length-1]=O,l.path=u.join("/"),l.type==="file"&&(l.language=En(O))}const o=n.openTabs.map(u=>u.fileId===t?{...u,fileName:O,language:En(O)}:u);return{files:s,openTabs:o}})},updateFileContent:(t,O)=>{i(n=>{const s=JSON.parse(JSON.stringify(n.files)),l=BO(s,t);l&&(l.content=O);const o=n.openTabs.map(u=>u.fileId===t?{...u,isModified:!0}:u);return{files:s,openTabs:o}}),e().autoSave&&setTimeout(()=>e().saveCurrentFile(),1e3)},toggleFolder:t=>{i(O=>{const n=JSON.parse(JSON.stringify(O.files)),s=BO(n,t);return s&&s.type==="folder"&&(s.isOpen=!s.isOpen),{files:n}})},openFile:t=>{const O=e(),n=BO(O.files,t);if(!n||n.type==="folder")return;const s=O.openTabs.find(o=>o.fileId===t);if(s){i({activeTabId:s.id});return}const l={id:Vs(),fileId:t,fileName:n.name,filePath:n.path,language:n.language||En(n.name),isModified:!1,isPinned:!1};i(o=>({openTabs:[...o.openTabs,l],activeTabId:l.id}))},closeTab:t=>{i(O=>{const n=O.openTabs.findIndex(o=>o.id===t),s=O.openTabs.filter(o=>o.id!==t);let l=O.activeTabId;return l===t&&(s.length===0?l=null:n>=s.length?l=s[s.length-1].id:l=s[n]?.id||s[n-1]?.id||null),{openTabs:s,activeTabId:l}})},setActiveTab:t=>i({activeTabId:t}),pinTab:t=>{i(O=>({openTabs:O.openTabs.map(n=>n.id===t?{...n,isPinned:!n.isPinned}:n)}))},closeOtherTabs:t=>{i(O=>({openTabs:O.openTabs.filter(n=>n.id===t||n.isPinned),activeTabId:t}))},closeTabsToRight:t=>{i(O=>{const n=O.openTabs.findIndex(l=>l.id===t);return{openTabs:O.openTabs.filter((l,o)=>o<=n||l.isPinned)}})},setTheme:t=>i({theme:t}),setFontSize:t=>i({fontSize:t}),setTabSize:t=>i({tabSize:t}),setWordWrap:t=>i({wordWrap:t}),setMinimap:t=>i({minimap:t}),setLineNumbers:t=>i({lineNumbers:t}),setAutoSave:t=>i({autoSave:t}),setFontFamily:t=>i({fontFamily:t}),toggleSidebar:()=>i(t=>({sidebarVisible:!t.sidebarVisible})),setSidebarVisible:t=>i({sidebarVisible:t}),togglePanel:()=>i(t=>({panelVisible:!t.panelVisible})),setPanelHeight:t=>i({panelHeight:t}),setActivePanel:t=>i({activePanel:t,panelVisible:!0}),setActiveSidePanel:t=>i({activeSidePanel:t}),setSearchQuery:t=>i({searchQuery:t}),setSearchResults:t=>i({searchResults:t}),searchInFiles:t=>{if(!t.trim()){i({searchResults:[]});return}const O=xu(e().files),n=[];for(const s of O){if(!s.content)continue;const l=s.content.split(`
+`},{id:"demo-python",name:"demo.py",type:"file",path:"/demo.py",language:"python",content:`# KM Code — syntax highlighting demo
+# Hit Run (or Ctrl+Enter) to execute!
+
+class Animal:
+    def __init__(self, name: str, sound: str):
+        self.name = name
+        self.sound = sound
+
+    def speak(self) -> str:
+        return f"{self.name} says {self.sound}!"
+
+    def __repr__(self) -> str:
+        return f"Animal(name={self.name!r})"
+
+
+def fibonacci(n: int) -> list[int]:
+    """Return the first n Fibonacci numbers."""
+    seq = [0, 1]
+    for _ in range(n - 2):
+        seq.append(seq[-1] + seq[-2])
+    return seq[:n]
+
+
+# --- main ---
+animals = [
+    Animal("Dog", "Woof"),
+    Animal("Cat", "Meow"),
+    Animal("Cow", "Moo"),
+]
+
+for animal in animals:
+    print(animal.speak())
+
+print()
+print("Fibonacci:", fibonacci(10))
+print("Done! ✓")
+`}];function Vs(){return Math.random().toString(36).substring(2,11)}function BO(i,e){for(const t of i){if(t.id===e)return t;if(t.children){const O=BO(t.children,e);if(O)return O}}return null}function xu(i){const e=[];for(const t of i)t.type==="file"&&e.push(t),t.children&&e.push(...xu(t.children));return e}function _T(i,e){for(let t=0;t<i.length;t++){if(i[t].id===e)return i.splice(t,1),!0;if(i[t].children&&_T(i[t].children,e))return!0}return!1}const LV="https://ce.judge0.com/submissions?base64_encoded=false&wait=true",Ry={javascript:63,typescript:74,python:71,python3:71,java:62,cpp:54,c:50,rust:73,bash:46,sh:46,shell:46,php:68,go:60,ruby:72,swift:83},ht=PV()(XV((i,e)=>({files:DV,openTabs:[{id:"tab-demo-python",fileId:"demo-python",fileName:"demo.py",filePath:"/demo.py",language:"python",isModified:!1,isPinned:!1}],activeTabId:"tab-demo-python",theme:"dark",fontSize:14,tabSize:2,wordWrap:!1,minimap:!1,lineNumbers:!0,autoSave:!0,fontFamily:"JetBrains Mono",sidebarVisible:!0,panelVisible:!1,panelHeight:typeof window<"u"&&window.innerWidth<640?280:220,activePanel:"terminal",activeSidePanel:"explorer",searchQuery:"",searchResults:[],gitBranch:"main",problems:[],terminalLines:[{id:"welcome",type:"info",content:"⚡ KM Code Terminal — type 'help' for commands.",timestamp:Date.now()}],outputLines:[],outputMeta:null,isRunning:!1,getFileById:t=>BO(e().files,t),getAllFiles:()=>xu(e().files),addFile:(t,O,n)=>{const s=Vs();return i(l=>{const o=JSON.parse(JSON.stringify(l.files)),u=BO(o,t);if(u&&u.type==="folder"){u.children||(u.children=[]);const h=`${u.path}/${O}`,d=En(h);u.children.push({id:s,name:O,type:n,path:h,language:n==="file"?d:void 0,content:n==="file"?"":void 0,children:n==="folder"?[]:void 0,isOpen:n==="folder"?!1:void 0})}else{const h=`/${O}`,d=En(h);o.push({id:s,name:O,type:n,path:h,language:n==="file"?d:void 0,content:n==="file"?"":void 0,children:n==="folder"?[]:void 0,isOpen:n==="folder"?!1:void 0})}return{files:o}}),s},deleteFile:t=>{i(O=>{const n=JSON.parse(JSON.stringify(O.files));_T(n,t);const s=O.openTabs.filter(o=>o.fileId!==t),l=O.activeTabId&&O.openTabs.find(o=>o.id===O.activeTabId)?.fileId===t?s[s.length-1]?.id||null:O.activeTabId;return{files:n,openTabs:s,activeTabId:l}})},renameFile:(t,O)=>{i(n=>{const s=JSON.parse(JSON.stringify(n.files)),l=BO(s,t);if(l){l.name=O;const u=l.path.split("/");u[u.length-1]=O,l.path=u.join("/"),l.type==="file"&&(l.language=En(O))}const o=n.openTabs.map(u=>u.fileId===t?{...u,fileName:O,language:En(O)}:u);return{files:s,openTabs:o}})},updateFileContent:(t,O)=>{i(n=>{const s=JSON.parse(JSON.stringify(n.files)),l=BO(s,t);l&&(l.content=O);const o=n.openTabs.map(u=>u.fileId===t?{...u,isModified:!0}:u);return{files:s,openTabs:o}}),e().autoSave&&setTimeout(()=>e().saveCurrentFile(),1e3)},toggleFolder:t=>{i(O=>{const n=JSON.parse(JSON.stringify(O.files)),s=BO(n,t);return s&&s.type==="folder"&&(s.isOpen=!s.isOpen),{files:n}})},openFile:t=>{const O=e(),n=BO(O.files,t);if(!n||n.type==="folder")return;const s=O.openTabs.find(o=>o.fileId===t);if(s){i({activeTabId:s.id});return}const l={id:Vs(),fileId:t,fileName:n.name,filePath:n.path,language:n.language||En(n.name),isModified:!1,isPinned:!1};i(o=>({openTabs:[...o.openTabs,l],activeTabId:l.id}))},closeTab:t=>{i(O=>{const n=O.openTabs.findIndex(o=>o.id===t),s=O.openTabs.filter(o=>o.id!==t);let l=O.activeTabId;return l===t&&(s.length===0?l=null:n>=s.length?l=s[s.length-1].id:l=s[n]?.id||s[n-1]?.id||null),{openTabs:s,activeTabId:l}})},setActiveTab:t=>i({activeTabId:t}),pinTab:t=>{i(O=>({openTabs:O.openTabs.map(n=>n.id===t?{...n,isPinned:!n.isPinned}:n)}))},closeOtherTabs:t=>{i(O=>({openTabs:O.openTabs.filter(n=>n.id===t||n.isPinned),activeTabId:t}))},closeTabsToRight:t=>{i(O=>{const n=O.openTabs.findIndex(l=>l.id===t);return{openTabs:O.openTabs.filter((l,o)=>o<=n||l.isPinned)}})},setTheme:t=>i({theme:t}),setFontSize:t=>i({fontSize:t}),setTabSize:t=>i({tabSize:t}),setWordWrap:t=>i({wordWrap:t}),setMinimap:t=>i({minimap:t}),setLineNumbers:t=>i({lineNumbers:t}),setAutoSave:t=>i({autoSave:t}),setFontFamily:t=>i({fontFamily:t}),toggleSidebar:()=>i(t=>({sidebarVisible:!t.sidebarVisible})),setSidebarVisible:t=>i({sidebarVisible:t}),togglePanel:()=>i(t=>({panelVisible:!t.panelVisible})),setPanelHeight:t=>i({panelHeight:t}),setActivePanel:t=>i({activePanel:t,panelVisible:!0}),setActiveSidePanel:t=>i({activeSidePanel:t}),setSearchQuery:t=>i({searchQuery:t}),setSearchResults:t=>i({searchResults:t}),searchInFiles:t=>{if(!t.trim()){i({searchResults:[]});return}const O=xu(e().files),n=[];for(const s of O){if(!s.content)continue;const l=s.content.split(`
 `),o=[];for(let u=0;u<l.length;u++){const h=l[u].toLowerCase().indexOf(t.toLowerCase());h!==-1&&o.push({line:u+1,column:h+1,text:l[u],preview:l[u].trim().substring(0,80)})}o.length>0&&n.push({fileId:s.id,fileName:s.name,filePath:s.path,matches:o})}i({searchResults:n})},addTerminalLine:t=>i(O=>({terminalLines:[...O.terminalLines,{...t,id:Vs(),timestamp:Date.now()}]})),clearTerminal:()=>i({terminalLines:[{id:Vs(),type:"info",content:"⚡ KM Code Terminal — type 'help' for commands.",timestamp:Date.now()}]}),executeCommand:t=>{const{addTerminalLine:O}=e();O({type:"input",content:`$ ${t}`});const n=t.trim();if(!n)return;if(n==="clear"){e().clearTerminal();return}if(n==="help"){O({type:"output",content:`⚡ KM Code Terminal
 ─────────────────────────────
   run         → execute current file via Piston
