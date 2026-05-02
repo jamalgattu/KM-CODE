@@ -553,6 +553,17 @@ Supported languages: JS, TS, Python, Java, C++, C,
       executeRun: () => {
         const state = get();
         const { addTerminalLine, addOutputLine } = state;
+
+        // Rate limit: prevent spamming Judge0 CE (free public API)
+        if (state.isRunning) return;
+        const now = Date.now();
+        const lastRun = (get() as { _lastRunAt?: number })._lastRunAt ?? 0;
+        if (now - lastRun < 2000) {
+          addTerminalLine({ type: "error", content: "Please wait a moment before running again." });
+          return;
+        }
+        (get() as { _lastRunAt?: number })._lastRunAt = now;
+
         const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
         if (!activeTab) {
           addTerminalLine({ type: "error", content: "No file open. Open a file first." });

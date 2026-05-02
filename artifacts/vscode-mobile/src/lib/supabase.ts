@@ -9,11 +9,14 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseKey)
   : (null as unknown as ReturnType<typeof createClient>)
 
+const authRedirectUrl = () =>
+  window.location.origin + window.location.pathname.replace(/\/$/, '')
+
 export const signInWithGoogle = () => {
   if (!isSupabaseConfigured) throw new Error('Supabase not configured')
   return supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href },
+    options: { redirectTo: authRedirectUrl() },
   })
 }
 
@@ -21,7 +24,7 @@ export const signInWithGitHub = () => {
   if (!isSupabaseConfigured) throw new Error('Supabase not configured')
   return supabase.auth.signInWithOAuth({
     provider: 'github',
-    options: { redirectTo: window.location.href },
+    options: { redirectTo: authRedirectUrl() },
   })
 }
 

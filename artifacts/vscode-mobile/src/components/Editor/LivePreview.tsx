@@ -43,11 +43,17 @@ function markdownToHtml(md: string): string {
   // Strikethrough
   html = html.replace(/~~(.+?)~~/g, "<del>$1</del>");
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Links — only allow safe protocols
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+    const safe = /^(https?:|mailto:|\/|#)/i.test(url.trim());
+    return safe ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>` : `<span>${text}</span>`;
+  });
 
-  // Images
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">');
+  // Images — only allow safe protocols
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
+    const safe = /^(https?:|data:image\/|\/)/i.test(src.trim());
+    return safe ? `<img src="${src}" alt="${alt}" style="max-width:100%">` : `<span>[image: ${alt}]</span>`;
+  });
 
   // Unordered lists
   html = html.replace(/^[-*+] (.+)$/gm, "<li>$1</li>");
@@ -236,7 +242,7 @@ export function LivePreview({ content, language, fileName }: LivePreviewProps) {
           srcDoc={srcDoc}
           title="Live Preview"
           className="w-full h-full border-none"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+          sandbox="allow-scripts allow-forms allow-modals"
         />
       </div>
     </div>
