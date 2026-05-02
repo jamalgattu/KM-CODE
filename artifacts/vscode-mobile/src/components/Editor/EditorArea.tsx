@@ -136,38 +136,38 @@ export function EditorArea() {
             <button
               onClick={() => setPreviewVisible((v) => !v)}
               className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors border",
+                "flex items-center gap-1 px-2 py-1 sm:py-0.5 rounded text-xs font-medium transition-colors border",
                 previewVisible
                   ? "bg-blue-600/25 text-blue-400 border-blue-600/40"
                   : "bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border-blue-600/20"
               )}
               title={previewVisible ? "Hide Preview" : "Show Split Preview"}
             >
-              {previewVisible ? <EyeOff size={11} /> : <Eye size={11} />}
-              Preview
+              {previewVisible ? <EyeOff size={12} /> : <Eye size={12} />}
+              <span className="hidden xs:inline">Preview</span>
             </button>
           )}
 
           {/* Copy */}
           <button
             onClick={handleCopy}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+            className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
             title="Copy Code"
           >
             {copied ? (
-              <span className="text-[10px] text-green-400 font-mono">Copied!</span>
+              <span className="text-[10px] text-green-400 font-mono">✓</span>
             ) : (
-              <Copy size={12} />
+              <Copy size={13} className="sm:w-3 sm:h-3" />
             )}
           </button>
 
           {/* Download */}
           <button
             onClick={handleDownload}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+            className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
             title="Download File"
           >
-            <Download size={12} />
+            <Download size={13} className="sm:w-3 sm:h-3" />
           </button>
 
           {/* Run button */}
@@ -177,15 +177,15 @@ export function EditorArea() {
               disabled={isRunning}
               title={`Run ${activeTab.fileName} (Ctrl+Enter)`}
               className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors",
+                "flex items-center gap-1 px-2.5 py-1 sm:px-2 sm:py-0.5 rounded text-xs font-medium transition-colors",
                 "bg-green-600/20 text-green-400 hover:bg-green-600/30 border border-green-600/30",
                 isRunning && "opacity-50 cursor-not-allowed"
               )}
             >
               {isRunning ? (
-                <Loader2 size={11} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
               ) : (
-                <Play size={11} />
+                <Play size={12} />
               )}
               {isRunning ? "Running..." : "Run"}
             </button>
@@ -194,9 +194,15 @@ export function EditorArea() {
       </div>
 
       {/* Editor + optional split preview */}
-      <div className={cn("flex-1 overflow-hidden", previewVisible && canPreview ? "flex" : "block")}>
+      <div className={cn(
+        "flex-1 overflow-hidden",
+        previewVisible && canPreview ? "flex flex-col md:flex-row" : "block"
+      )}>
         {/* Editor pane */}
-        <div className={cn("overflow-hidden", previewVisible && canPreview ? "flex-1 min-w-0" : "h-full")}>
+        <div className={cn(
+          "overflow-hidden",
+          previewVisible && canPreview ? "flex-1 min-h-0 min-w-0" : "h-full"
+        )}>
           <CodeEditor
             key={activeTab.fileId}
             fileId={activeTab.fileId}
@@ -207,9 +213,9 @@ export function EditorArea() {
           />
         </div>
 
-        {/* Live preview pane */}
+        {/* Live preview pane — full width below editor on mobile, half width beside on desktop */}
         {previewVisible && canPreview && (
-          <div className="w-1/2 min-w-0 overflow-hidden shrink-0">
+          <div className="h-64 md:h-auto md:w-1/2 min-w-0 overflow-hidden shrink-0">
             <LivePreview
               content={content}
               language={lang}

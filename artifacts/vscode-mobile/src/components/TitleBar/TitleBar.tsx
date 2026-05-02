@@ -117,14 +117,14 @@ export function TitleBar() {
   };
 
   return (
-    <div className="flex items-center h-9 border-b border-border bg-sidebar shrink-0 select-none" data-testid="title-bar">
+    <div className="flex items-center h-11 sm:h-9 border-b border-border bg-sidebar shrink-0 select-none" data-testid="title-bar">
       {/* App icon */}
-      <div className="flex items-center justify-center w-12 h-full border-r border-sidebar-border">
+      <div className="flex items-center justify-center w-11 sm:w-12 h-full border-r border-sidebar-border shrink-0">
         <Code2 size={18} className="text-primary" />
       </div>
 
-      {/* Menu bar */}
-      <div className="flex items-center h-full">
+      {/* Menu bar — hidden on mobile, shown on sm+ */}
+      <div className="hidden sm:flex items-center h-full">
         {Object.keys(MENU_ITEMS).map((menuName) => (
           <div key={menuName} className="relative h-full">
             <button
@@ -152,7 +152,7 @@ export function TitleBar() {
                       <button
                         key={idx}
                         onClick={() => handleMenuAction(item.label!)}
-                        className="flex items-center justify-between w-full px-3 py-1.5 text-xs hover:bg-sidebar-accent text-foreground"
+                        className="flex items-center justify-between w-full px-3 py-2 text-sm sm:py-1.5 sm:text-xs hover:bg-sidebar-accent text-foreground"
                       >
                         <span className="flex items-center gap-2">
                           {item.toggle && (
@@ -174,42 +174,44 @@ export function TitleBar() {
       </div>
 
       {/* Center - File name */}
-      <div className="flex-1 flex items-center justify-center">
-        <span className="text-xs text-muted-foreground">
-          {activeTab ? activeTab.fileName : "KM Code Editor"}
+      <div className="flex-1 flex items-center justify-center min-w-0 px-2">
+        <span className="text-xs text-muted-foreground truncate max-w-full">
+          {activeTab ? activeTab.fileName : "KM Code"}
         </span>
       </div>
 
-      {/* Right actions */}
-      <div className="flex items-center gap-0.5 px-2">
-        <KeyboardShortcutsDialog />
+      {/* Right actions — bigger touch targets on mobile */}
+      <div className="flex items-center gap-0 sm:gap-0.5 px-1 sm:px-2">
+        <span className="hidden sm:block"><KeyboardShortcutsDialog /></span>
         <button
           onClick={saveCurrentFile}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
           title="Save (⌘S)"
           data-testid="save-button"
         >
-          <Save size={15} />
+          <Save size={16} className="sm:w-[15px] sm:h-[15px]" />
         </button>
         <button
           onClick={handleRunCode}
           disabled={isRunning}
-          className="p-1.5 rounded text-muted-foreground hover:text-green-500 hover:bg-sidebar-accent transition-colors disabled:opacity-50"
+          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-green-500 hover:bg-sidebar-accent transition-colors disabled:opacity-50"
           title="Run (⌘Enter)"
           data-testid="run-button"
         >
-          {isRunning ? <Loader2 size={15} className="animate-spin text-green-500" /> : <Play size={15} />}
+          {isRunning
+            ? <Loader2 size={16} className="animate-spin text-green-500 sm:w-[15px] sm:h-[15px]" />
+            : <Play size={16} className="sm:w-[15px] sm:h-[15px]" />}
         </button>
         <button
           onClick={() => {
             setActivePanel("terminal");
             if (!panelVisible) togglePanel();
           }}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
-          title="Terminal (⌃`)"
+          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          title="Terminal"
           data-testid="terminal-button"
         >
-          <TerminalSquare size={15} />
+          <TerminalSquare size={16} className="sm:w-[15px] sm:h-[15px]" />
         </button>
       </div>
     </div>

@@ -18,7 +18,7 @@ export function EditorPage() {
   const {
     theme, sidebarVisible, openFile, saveCurrentFile,
     togglePanel, setActivePanel, panelVisible, toggleSidebar,
-    setActiveSidePanel, files, executeCommand,
+    setActiveSidePanel, files, executeRun,
   } = useEditorStore();
   const isMobile = useIsMobile();
 
@@ -69,9 +69,7 @@ export function EditorPage() {
       }
       if (meta && e.key === "Enter") {
         e.preventDefault();
-        setActivePanel("terminal");
-        if (!panelVisible) togglePanel();
-        executeCommand("run");
+        executeRun();
       }
       if (meta && e.shiftKey && e.key === "E") {
         e.preventDefault();
@@ -89,7 +87,7 @@ export function EditorPage() {
         if (!panelVisible) togglePanel();
       }
     },
-    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible, executeCommand]
+    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible, executeRun]
   );
 
   useEffect(() => {

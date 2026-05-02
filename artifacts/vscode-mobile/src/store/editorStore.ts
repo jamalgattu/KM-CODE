@@ -505,21 +505,26 @@ Supported languages: JS, TS, Python, Java, C++, C,
         const state = get();
         const { addTerminalLine, addOutputLine } = state;
         const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
-        if (!activeTab) return;
+        if (!activeTab) {
+          addTerminalLine({ type: "error", content: "No file open. Open a file first." });
+          return;
+        }
 
         const file = findFileById(state.files, activeTab.fileId);
         if (!file || !file.content?.trim()) {
-          addOutputLine({ type: "system", content: "File is empty — nothing to run." });
+          addTerminalLine({ type: "error", content: "File is empty — add some code first." });
+          set({ panelVisible: true, activePanel: "terminal" });
           return;
         }
 
         const lang = (file.language ?? "javascript").toLowerCase();
         const runtime = LANGUAGE_RUNTIME[lang];
         if (!runtime) {
-          addOutputLine({
-            type: "failure",
-            content: `Language "${lang}" cannot be executed. Supported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
+          addTerminalLine({
+            type: "error",
+            content: `"${lang}" cannot be executed. Supported: ${Object.keys(LANGUAGE_RUNTIME).join(", ")}`,
           });
+          set({ panelVisible: true, activePanel: "terminal" });
           return;
         }
 

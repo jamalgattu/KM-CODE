@@ -85,13 +85,15 @@ export function BottomPanel() {
       style={{ height: panelHeight }}
       data-testid="bottom-panel"
     >
-      {/* Resize handle */}
+      {/* Resize handle — taller on mobile for easier touch dragging */}
       <div
-        className="panel-resize-handle h-1 bg-border/50 hover:bg-primary/50 transition-colors shrink-0"
+        className="panel-resize-handle h-2 sm:h-1 bg-border/50 hover:bg-primary/50 active:bg-primary/70 transition-colors shrink-0 touch-none cursor-row-resize flex items-center justify-center"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         data-testid="panel-resize-handle"
-      />
+      >
+        <div className="sm:hidden w-8 h-0.5 rounded-full bg-border/80" />
+      </div>
 
       {/* Panel tabs */}
       <div className="flex items-center border-b border-border shrink-0 bg-muted/30">
