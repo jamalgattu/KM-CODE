@@ -177,7 +177,7 @@ export const useEditorStore = create<EditorStore>()(
       fontFamily: "JetBrains Mono",
       sidebarVisible: true,
       panelVisible: false,
-      panelHeight: 220,
+      panelHeight: typeof window !== "undefined" && window.innerWidth < 640 ? 280 : 220,
       activePanel: "terminal",
       activeSidePanel: "explorer",
       searchQuery: "",

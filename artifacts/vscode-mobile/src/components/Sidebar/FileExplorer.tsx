@@ -1,8 +1,5 @@
 import { useState, useRef } from "react";
-import {
-  ChevronRight, ChevronDown, File, Folder, FolderOpen,
-  FilePlus, FolderPlus, Trash2, Edit2, RefreshCw
-} from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { FileNode } from "@/types/editor";
 import { cn } from "@/lib/utils";
@@ -32,10 +29,8 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(node.name);
   const renameRef = useRef<HTMLInputElement>(null);
-  const {
-    openFile, toggleFolder, deleteFile,
-    renameFile, addFile, updateFileContent
-  } = useEditorStore();
+
+  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent, setSidebarVisible } = useEditorStore();
 
   const handleClick = () => {
     if (node.type === "folder") {
@@ -43,6 +38,10 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
     } else {
       openFile(node.id);
       onSelect(node.id);
+      // Auto-close sidebar on mobile so the editor fills the screen
+      if (window.innerWidth < 640) {
+        setSidebarVisible(false);
+      }
     }
   };
 
@@ -61,13 +60,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
     }
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (window.confirm('Delete "' + node.name + '"?')) {
-      deleteFile(node.id);
-    }
-  };
-
   const isSelected = selectedId === node.id;
 
   return (
@@ -78,16 +70,21 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           "hover:bg-sidebar-accent/60 transition-colors",
           isSelected && "bg-sidebar-accent"
         )}
-        style={{ paddingLeft: depth * 12 + 8 + "px" }}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
-        onContextMenu={(e) => { e.preventDefault(); onSelect(node.id); }}
-        data-testid={"file-item-" + node.id}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onSelect(node.id);
+        }}
+        data-testid={`file-item-${node.id}`}
       >
         <span className="mr-1.5 flex items-center shrink-0">
           {node.type === "folder" ? (
-            node.isOpen
-              ? <ChevronDown size={14} className="text-muted-foreground" />
-              : <ChevronRight size={14} className="text-muted-foreground" />
+            node.isOpen ? (
+              <ChevronDown size={14} className="text-muted-foreground" />
+            ) : (
+              <ChevronRight size={14} className="text-muted-foreground" />
+            )
           ) : (
             <span style={{ width: 14 }} />
           )}
@@ -95,9 +92,11 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
 
         <span className="mr-1.5 shrink-0">
           {node.type === "folder" ? (
-            node.isOpen
-              ? <FolderOpen size={15} className="text-yellow-400" />
-              : <Folder size={15} className="text-yellow-400" />
+            node.isOpen ? (
+              <FolderOpen size={15} className="text-yellow-400" />
+            ) : (
+              <Folder size={15} className="text-yellow-400" />
+            )
           ) : (
             <File size={14} style={{ color: getExtColor(node.name) }} />
           )}
@@ -116,12 +115,12 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
             data-testid="rename-input"
           />
         ) : (
-          <span className={cn(
-            "flex-1 truncate text-sm",
-            node.type === "folder"
-              ? "text-sidebar-foreground font-medium"
-              : "text-sidebar-foreground"
-          )}>
+          <span
+            className={cn(
+              "flex-1 truncate text-sm",
+              node.type === "folder" ? "text-sidebar-foreground font-medium" : "text-sidebar-foreground"
+            )}
+          >
             {node.name}
           </span>
         )}
@@ -166,7 +165,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
               />
             </>
           )}
-
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -179,9 +177,13 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           >
             <Edit2 size={13} />
           </button>
-
           <button
-            onClick={handleDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Delete "${node.name}"?`)) {
+                deleteFile(node.id);
+              }
+            }}
             className="p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
             title="Delete"
           >
@@ -204,7 +206,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           {node.children.length === 0 && (
             <div
               className="text-xs text-muted-foreground italic"
-              style={{ paddingLeft: (depth + 1) * 12 + 8 + 14 + "px" }}
+              style={{ paddingLeft: `${(depth + 1) * 12 + 8 + 14}px` }}
             >
               Empty folder
             </div>
@@ -217,23 +219,9 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
 
 export function FileExplorer() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { files, addFile, updateFileContent, deleteFile } = useEditorStore();
+  const { files, addFile, updateFileContent } = useEditorStore();
 
-  const handleNewFileAtRoot = (name: string, content?: string, type: "file" | "folder" = "file") => {
-    const id = Math.random().toString(36).slice(2);
-    const newNode = {
-      id,
-      name,
-      type,
-      path: "/" + name,
-      language: type === "file" ? name.split(".").pop() || "plaintext" : undefined,
-      content: type === "file" ? (content || "") : undefined,
-      children: type === "folder" ? [] : undefined,
-    };
-    useEditorStore.setState((state) => ({
-      files: [...state.files, newNode as any],
-    }));
-  };
+  const rootNode = files[0];
 
   return (
     <div className="flex flex-col h-full" data-testid="file-explorer">
@@ -244,7 +232,14 @@ export function FileExplorer() {
         <div className="flex items-center gap-1">
           <NewFileDialog
             defaultType="file"
-            onConfirm={(name, content, type) => handleNewFileAtRoot(name, content, type)}
+            onConfirm={(name, content, type) => {
+              if (rootNode) {
+                const id = addFile(rootNode.id, name, type);
+                if (content && id) {
+                  setTimeout(() => updateFileContent(id, content), 50);
+                }
+              }
+            }}
             trigger={
               <button
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
@@ -257,7 +252,9 @@ export function FileExplorer() {
           />
           <NewFileDialog
             defaultType="folder"
-            onConfirm={(name, _, type) => handleNewFileAtRoot(name, "", type)}
+            onConfirm={(name, _, type) => {
+              if (rootNode) addFile(rootNode.id, name, type);
+            }}
             trigger={
               <button
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
@@ -291,4 +288,4 @@ export function FileExplorer() {
       </div>
     </div>
   );
-        }
+}
