@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { FileNode, getLanguageFromPath } from "@/types/editor";
 import { supabase, getUser, isSupabaseConfigured } from "@/lib/supabase";
+import { getGuestSession } from "@/hooks/useAuth";
 
 export const fileIdMap = new Map<string, string>();
 export const apiIdMap = new Map<string, string>();
@@ -19,6 +20,9 @@ export function useBackendSync() {
       try {
         // Supabase not configured — keep local persisted files untouched
         if (!isSupabaseConfigured) return;
+
+        // Guest session — user explicitly chose offline mode, don't touch their files
+        if (getGuestSession()) return;
 
         const user = await getUser();
 
