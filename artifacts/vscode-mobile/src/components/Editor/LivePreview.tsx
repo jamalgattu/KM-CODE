@@ -243,6 +243,7 @@ export function LivePreview({ content, language, fileName }: LivePreviewProps) {
           title="Live Preview"
           className="w-full h-full border-none"
           sandbox="allow-scripts allow-forms allow-modals"
+          referrerPolicy="no-referrer"
         />
       </div>
     </div>

@@ -26,12 +26,18 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
   const {
     theme, sidebarVisible, openFile, saveCurrentFile,
     togglePanel, setActivePanel, panelVisible, toggleSidebar,
-    setActiveSidePanel, files, executeRun,
+    setActiveSidePanel, files, executeRun, setSidebarVisible,
   } = useEditorStore();
   const isMobile = useIsMobile();
 
   useBackendSync();
   useSwipeGesture();
+
+  // Auto-close sidebar on mobile so the editor is immediately visible
+  useEffect(() => {
+    if (isMobile && sidebarVisible) setSidebarVisible(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -58,7 +64,8 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
       const firstFileId = findFirstFile(files);
       if (firstFileId) openFile(firstFileId);
     }
-  }, [openTabs.length, files]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openTabs.length, files, openFile]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {

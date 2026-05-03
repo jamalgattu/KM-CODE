@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
   EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
-  drawSelection, rectangularSelection, crosshairCursor, dropCursor,
+  drawSelection, rectangularSelection, crosshairCursor, dropCursor, highlightSpecialChars,
 } from "@codemirror/view";
-import { Compartment, EditorState, StateEffect } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import {
   indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
-  HighlightStyle,
+  HighlightStyle, defaultHighlightStyle,
 } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from "@codemirror/autocomplete";
@@ -113,6 +113,7 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   const wordWrapComp   = useRef(new Compartment());
   const lineNumsComp   = useRef(new Compartment());
   const tabSizeComp    = useRef(new Compartment());
+  const fontComp       = useRef(new Compartment());
 
   const getThemeExtensions = useCallback(() => {
     if (theme === "dark") return [oneDark];
@@ -147,6 +148,8 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
     const langExt = getLanguageExtension(language);
     const extensions = [
       history(),
+      highlightSpecialChars(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       drawSelection(),
       dropCursor(),
       rectangularSelection(),
@@ -172,6 +175,11 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       wordWrapComp.current.of(wordWrap ? EditorView.lineWrapping : []),
       lineNumsComp.current.of(showLineNumbers ? lineNumbers() : []),
       tabSizeComp.current.of(EditorState.tabSize.of(tabSize)),
+      fontComp.current.of(EditorView.theme({
+        "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace`, height: "100%" },
+        ".cm-scroller": { fontFamily: "inherit", overflow: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y" },
+        ".cm-content": { touchAction: "pan-y" },
+      })),
       ...getThemeExtensions(),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -186,11 +194,6 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
             onCursorChange(line.number, pos - line.from + 1);
           }
         }
-      }),
-      EditorView.theme({
-        "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace`, height: "100%" },
-        ".cm-scroller": { fontFamily: "inherit", overflow: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y" },
-        ".cm-content": { touchAction: "pan-y" },
       }),
       langExt,
     ].flat();
@@ -238,14 +241,12 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   }, [tabSize]);
 
   useEffect(() => {
-    if (!viewRef.current) return;
-    viewRef.current.dispatch({
-      effects: StateEffect.reconfigure.of([
-        EditorView.theme({
-          "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace` },
-          ".cm-scroller": { fontFamily: "inherit" },
-        }),
-      ]),
+    viewRef.current?.dispatch({
+      effects: fontComp.current.reconfigure(EditorView.theme({
+        "&": { fontSize: `${fontSize}px`, fontFamily: `${fontFamily}, JetBrains Mono, monospace`, height: "100%" },
+        ".cm-scroller": { fontFamily: "inherit", overflow: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-y" },
+        ".cm-content": { touchAction: "pan-y" },
+      })),
     });
   }, [fontSize, fontFamily]);
 

@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { getLanguageFromPath } from "@/types/editor";
 import { CodeEditor } from "./CodeEditor";
 import { LivePreview } from "./LivePreview";
-import { Files, Play, Loader2, Download, Copy, Eye, EyeOff } from "lucide-react";
+import { Files, Play, Loader2, Download, Copy, Eye, EyeOff, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toPng } from "html-to-image";
 
 const ALL_RUNNABLE_LANGS = new Set([
   "javascript", "typescript", "python", "python3", "bash", "sh", "shell",
@@ -21,21 +22,23 @@ export function EditorArea() {
   const [cursor, setCursor] = useState({ line: 1, col: 1 });
   const [previewVisible, setPreviewVisible] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [screenshotting, setScreenshotting] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
   const getFileContent = useCallback((fileId: string): string => {
-    const findContent = (nodes: typeof files): string => {
+    const findContent = (nodes: typeof files): string | null => {
       for (const node of nodes) {
-        if (node.id === fileId) return node.content || "";
+        if (node.id === fileId) return node.content ?? "";
         if (node.children) {
           const found = findContent(node.children);
-          if (found !== "") return found;
+          if (found !== null) return found;
         }
       }
-      return "";
+      return null;
     };
-    return findContent(files);
+    return findContent(files) ?? "";
   }, [files]);
 
   const handleRun = () => {
@@ -64,6 +67,33 @@ export function EditorArea() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+
+  const handleScreenshot = useCallback(async () => {
+    if (!captureRef.current || screenshotting) return;
+    setScreenshotting(true);
+    try {
+      const dataUrl = await toPng(captureRef.current, {
+        cacheBust: true,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 3),
+        backgroundColor: "var(--background)",
+      });
+      const link = document.createElement("a");
+      link.download = `km-code-debug-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      if (activeTab) {
+        const content = getFileContent(activeTab.fileId);
+        const fileLang = (activeTab.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
+        await navigator.clipboard.writeText(
+          `File: ${activeTab.fileName}\n\`\`\`${fileLang}\n${content}\n\`\`\``
+        ).catch(() => {});
+      }
+    } finally {
+      setScreenshotting(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenshotting, activeTab]);
 
   if (!activeTab) {
     return (
@@ -136,7 +166,7 @@ export function EditorArea() {
   const canPreview = PREVIEW_LANGS.has(lang);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background">
+    <div ref={captureRef} className="flex flex-col h-full overflow-hidden bg-background">
       {/* Breadcrumb + actions */}
       <div className="flex items-center gap-1 px-3 py-1 text-xs text-muted-foreground border-b border-border/50 bg-background shrink-0">
         <div className="flex-1 flex items-center gap-1 min-w-0 overflow-hidden">
@@ -181,6 +211,20 @@ export function EditorArea() {
               <span className="text-[10px] text-green-400 font-mono">✓</span>
             ) : (
               <Copy size={13} className="sm:w-3 sm:h-3" />
+            )}
+          </button>
+
+          {/* Screenshot for AI debugging */}
+          <button
+            onClick={handleScreenshot}
+            disabled={screenshotting}
+            className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors disabled:opacity-50"
+            title="Screenshot for AI Debug"
+          >
+            {screenshotting ? (
+              <Loader2 size={13} className="animate-spin sm:w-3 sm:h-3" />
+            ) : (
+              <Camera size={13} className="sm:w-3 sm:h-3" />
             )}
           </button>
 
