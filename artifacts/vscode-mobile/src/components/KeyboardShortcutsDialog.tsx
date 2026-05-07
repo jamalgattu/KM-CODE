@@ -13,6 +13,7 @@ const SHORTCUTS = [
     { keys: ["Ctrl", "Shift", "E"], label: "Show explorer" },
     { keys: ["Ctrl", "Shift", "F"], label: "Show search" },
     { keys: ["Ctrl", "Shift", "M"], label: "Show problems" },
+    { keys: ["Ctrl", "Shift", "I"], label: "Show input (stdin)" },
   ]},
   { category: "Run", items: [
     { keys: ["Ctrl", "Enter"], label: "Run current file" },

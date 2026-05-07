@@ -93,6 +93,11 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
         setActivePanel("problems");
         if (!panelVisible) togglePanel();
       }
+      if (meta && e.shiftKey && e.key === "I") {
+        e.preventDefault();
+        setActivePanel("input");
+        if (!panelVisible) togglePanel();
+      }
     },
     [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible, executeRun]
   );

@@ -1,4 +1,4 @@
-import { GitBranch, AlertCircle, AlertTriangle, CheckCircle, Bell, TerminalSquare, Sun, Moon, Download } from "lucide-react";
+import { GitBranch, AlertCircle, AlertTriangle, CheckCircle, Bell, TerminalSquare, Sun, Moon, Download, ArrowDownToLine } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 
 export function StatusBar() {
@@ -15,7 +15,9 @@ export function StatusBar() {
     panelVisible,
     autoSave,
     files,
+    stdin,
   } = useEditorStore();
+  const hasStdin = stdin.trim().length > 0;
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const errors = problems.filter((p) => p.severity === "error").length;
@@ -109,6 +111,19 @@ export function StatusBar() {
               <Download size={12} />
             </button>
           </>
+        )}
+
+        {hasStdin && (
+          <button
+            onClick={() => { setActivePanel("input"); if (!panelVisible) togglePanel(); }}
+            className="flex items-center gap-1 hover:bg-white/10 px-1.5 rounded transition-colors text-blue-300"
+            title="Input ready — click to edit stdin"
+            data-testid="status-stdin"
+          >
+            <ArrowDownToLine size={12} />
+            <span className="hidden sm:inline text-[10px]">stdin</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          </button>
         )}
 
         <button
