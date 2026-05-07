@@ -35,8 +35,9 @@ export interface EditorState {
   sidebarVisible: boolean;
   panelVisible: boolean;
   panelHeight: number;
-  activePanel: "terminal" | "problems" | "output" | "search" | "preview";
+  activePanel: "terminal" | "problems" | "output" | "search" | "preview" | "input";
   activeSidePanel: "explorer" | "search" | "git" | "extensions" | "settings";
+  stdin: string;
   searchQuery: string;
   searchResults: SearchResult[];
   gitBranch: string;

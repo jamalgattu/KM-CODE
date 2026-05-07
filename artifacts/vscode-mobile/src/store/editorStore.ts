@@ -145,6 +145,7 @@ interface EditorStore extends EditorState {
   addOutputLine: (line: Omit<OutputLine, "id" | "timestamp">) => void;
   clearOutput: () => void;
   executeRun: () => void;
+  setStdin: (stdin: string) => void;
 
   setProblems: (problems: Problem[]) => void;
   addProblem: (problem: Omit<Problem, "id">) => void;
@@ -243,6 +244,7 @@ export const useEditorStore = create<EditorStore>()(
       outputLines: [],
       outputMeta: null,
       isRunning: false,
+      stdin: "",
 
       getFileById: (fileId) => findFileById(get().files, fileId),
       getAllFiles: () => getAllFilesFlat(get().files),
@@ -630,13 +632,19 @@ Supported languages: JS, TS, Python, Java, C++, C,
         }
 
         // Judge0 CE — synchronous submission (wait=true returns result immediately)
+        const stdinValue = get().stdin;
+        const submissionBody: Record<string, unknown> = {
+          source_code: submissionCode,
+          language_id: languageId,
+        };
+        if (stdinValue.trim()) {
+          submissionBody.stdin = stdinValue;
+          addOutputLine({ type: "system", content: `↳  stdin: ${stdinValue.split("\n").length} line(s)` });
+        }
         fetch(JUDGE0_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            source_code: submissionCode,
-            language_id: languageId,
-          }),
+          body: JSON.stringify(submissionBody),
         })
           .then((r) => r.json())
           .then((data) => {
@@ -692,6 +700,8 @@ Supported languages: JS, TS, Python, Java, C++, C,
             set({ isRunning: false });
           });
       },
+
+      setStdin: (stdin) => set({ stdin }),
 
       setProblems: (problems) => set({ problems }),
       addProblem: (problem) =>
