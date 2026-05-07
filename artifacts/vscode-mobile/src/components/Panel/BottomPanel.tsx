@@ -1,25 +1,30 @@
 import { useRef, useCallback } from "react";
-import { X, TerminalSquare, AlertTriangle, FileText, Globe } from "lucide-react";
+import { X, TerminalSquare, AlertTriangle, FileText, Globe, ArrowDownToLine } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { Terminal } from "./Terminal";
 import { ProblemsPanel } from "./ProblemsPanel";
 import { OutputPanel } from "./OutputPanel";
 import { HTMLPreview } from "./HTMLPreview";
+import { InputPanel } from "./InputPanel";
 import { cn } from "@/lib/utils";
 
 const PANEL_TABS = [
   { id: "terminal" as const, label: "Terminal", icon: TerminalSquare },
   { id: "problems" as const, label: "Problems", icon: AlertTriangle },
   { id: "output" as const, label: "Output", icon: FileText },
+  { id: "input" as const, label: "Input", icon: ArrowDownToLine },
   { id: "preview" as const, label: "Preview", icon: Globe },
 ];
 
 export function BottomPanel() {
-  const { panelVisible, panelHeight, setPanelHeight, togglePanel, activePanel, setActivePanel, problems, openTabs, activeTabId } =
-    useEditorStore();
+  const {
+    panelVisible, panelHeight, setPanelHeight, togglePanel,
+    activePanel, setActivePanel, problems, openTabs, activeTabId, stdin,
+  } = useEditorStore();
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const errorCount = problems.filter((p) => p.severity === "error").length;
   const warnCount = problems.filter((p) => p.severity === "warning").length;
+  const hasStdin = stdin.trim().length > 0;
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const isHTMLFile = activeTab?.language === "html";
@@ -118,6 +123,9 @@ export function BottomPanel() {
                 {warnCount > 0 && `${warnCount}`}
               </span>
             )}
+            {id === "input" && hasStdin && (
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 ml-0.5" title="Input ready" />
+            )}
           </button>
         ))}
         <div className="ml-auto flex items-center pr-1">
@@ -137,6 +145,7 @@ export function BottomPanel() {
         {activePanel === "terminal" && <Terminal />}
         {activePanel === "problems" && <ProblemsPanel />}
         {activePanel === "output" && <OutputPanel />}
+        {activePanel === "input" && <InputPanel />}
         {(activePanel as string) === "preview" && <HTMLPreview />}
       </div>
     </div>
