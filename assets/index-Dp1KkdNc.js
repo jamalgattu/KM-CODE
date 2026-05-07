@@ -206,6 +206,45 @@ func main() {
         System.out.println("Hello, World!");
     }
 }
+`},{label:"Add Two Numbers",extension:".java",content:`import java.util.Scanner;
+
+public class AddNumbers {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        int a, b, sum;
+
+        System.out.print("Enter first number: ");
+        a = sc.nextInt();
+
+        System.out.print("Enter second number: ");
+        b = sc.nextInt();
+
+        sum = a + b;
+
+        System.out.println("Sum = " + sum);
+    }
+}
+`},{label:"OOP Example",extension:".java",content:`public class Animal {
+    String name;
+    String sound;
+
+    Animal(String name, String sound) {
+        this.name = name;
+        this.sound = sound;
+    }
+
+    void speak() {
+        System.out.println(this.name + " says " + this.sound);
+    }
+
+    public static void main(String[] args) {
+        Animal dog = new Animal("Dog", "Woof");
+        Animal cat = new Animal("Cat", "Meow");
+        dog.speak();
+        cat.speak();
+    }
+}
 `}],"C++":[{label:"Hello World",extension:".cpp",content:`#include <iostream>
 
 int main() {
