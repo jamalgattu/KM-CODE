@@ -34,6 +34,8 @@ const TEMPLATES: Record<string, { label: string; extension: string; content: str
   ],
   Java: [
     { label: "Hello World", extension: ".java", content: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n` },
+    { label: "Add Two Numbers", extension: ".java", content: `import java.util.Scanner;\n\npublic class AddNumbers {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n\n        int a, b, sum;\n\n        System.out.print("Enter first number: ");\n        a = sc.nextInt();\n\n        System.out.print("Enter second number: ");\n        b = sc.nextInt();\n\n        sum = a + b;\n\n        System.out.println("Sum = " + sum);\n    }\n}\n` },
+    { label: "OOP Example", extension: ".java", content: `public class Animal {\n    String name;\n    String sound;\n\n    Animal(String name, String sound) {\n        this.name = name;\n        this.sound = sound;\n    }\n\n    void speak() {\n        System.out.println(this.name + " says " + this.sound);\n    }\n\n    public static void main(String[] args) {\n        Animal dog = new Animal("Dog", "Woof");\n        Animal cat = new Animal("Cat", "Meow");\n        dog.speak();\n        cat.speak();\n    }\n}\n` },
   ],
   "C++": [
     { label: "Hello World", extension: ".cpp", content: `#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}\n` },
