@@ -612,13 +612,21 @@ Supported languages: JS, TS, Python, Java, C++, C,
         addOutputLine({ type: "system", content: "─".repeat(40) });
         addTerminalLine({ type: "info", content: `▶ Running ${fileName} (${lang})...` });
 
-        // Java: Judge0 CE always compiles as Main.java internally.
-        // A `public class X` where X != Main causes a compile error.
-        // Fix: strip the `public` modifier from top-level class declarations so
-        // Java no longer enforces filename matching — class name can be anything.
+        // Java: Judge0 CE compiles as Main.java and runs `java Main`.
+        // If the user's public class is named anything other than Main it fails.
+        // Fix: rename the public class (and all its references) to Main, then
+        // strip the `public` modifier from all remaining class declarations.
         let submissionCode = fileContent;
         if (lang === "java") {
-          submissionCode = fileContent.replace(/\bpublic(\s+(?:final\s+|abstract\s+)?class\b)/g, "$1");
+          let code = fileContent;
+          const publicClassMatch = code.match(/\bpublic\s+class\s+(\w+)/);
+          if (publicClassMatch && publicClassMatch[1] !== "Main") {
+            const oldName = publicClassMatch[1];
+            code = code.replace(new RegExp(`\\b${oldName}\\b`, "g"), "Main");
+          }
+          // Strip `public` from all class declarations (inner classes etc.)
+          code = code.replace(/\bpublic(\s+(?:final\s+|abstract\s+)?class\b)/g, "$1");
+          submissionCode = code;
         }
 
         // Judge0 CE — synchronous submission (wait=true returns result immediately)
