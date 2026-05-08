@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
+import { getErrorHint, getStatusHint } from "@/lib/errorFormatter";
 import { getCurrentEditorView } from "@/lib/editorView";
 
 const DEFAULT_FILES: FileNode[] = [
@@ -668,13 +669,25 @@ Supported languages: JS, TS, Python, Java, C++, C,
                 });
               }
               if (data.stderr) {
-                data.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+                const stderrLines = data.stderr.split("\n").filter(Boolean) as string[];
+                const seenHints = new Set<string>();
+                stderrLines.forEach((l: string) => {
                   addOutputLine({ type: "stderr", content: l });
                   addTerminalLine({ type: "error", content: l });
+                  const hint = getErrorHint(l, lang);
+                  if (hint && !seenHints.has(hint)) {
+                    seenHints.add(hint);
+                    addOutputLine({ type: "hint", content: hint });
+                  }
                 });
               }
               if (!accepted && data.status?.description) {
                 addOutputLine({ type: "stderr", content: `Runtime: ${data.status.description}` });
+              }
+              // Status-level hints (TLE, MLE, etc.)
+              const statusHint = getStatusHint(statusId);
+              if (statusHint && !accepted) {
+                addOutputLine({ type: "hint", content: statusHint });
               }
             }
 

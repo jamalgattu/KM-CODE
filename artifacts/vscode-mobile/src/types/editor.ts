@@ -78,7 +78,7 @@ export interface TerminalLine {
 
 export interface OutputLine {
   id: string;
-  type: "stdout" | "stderr" | "system" | "success" | "failure";
+  type: "stdout" | "stderr" | "system" | "success" | "failure" | "hint";
   content: string;
   timestamp: number;
 }
