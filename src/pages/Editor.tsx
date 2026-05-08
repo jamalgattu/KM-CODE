@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { ActivityBar } from "@/components/ActivityBar/ActivityBar";
 import { Sidebar } from "@/components/Sidebar/Sidebar";
@@ -9,9 +9,11 @@ import { BottomPanel } from "@/components/Panel/BottomPanel";
 import { StatusBar } from "@/components/StatusBar/StatusBar";
 import { MobileSymbolBar } from "@/components/MobileSymbolBar";
 import { FloatingRunButton } from "@/components/FloatingRunButton";
+import { GoToLineDialog } from "@/components/GoToLineDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { getCurrentEditorView } from "@/lib/editorView";
 import type { AuthUser } from "@/hooks/useAuth";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
@@ -26,12 +28,22 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
   const {
     theme, sidebarVisible, openFile, saveCurrentFile,
     togglePanel, setActivePanel, panelVisible, toggleSidebar,
-    setActiveSidePanel, files, executeRun,
+    setActiveSidePanel, files, executeRun, setSidebarVisible,
+    isFullscreen, toggleFullscreen,
   } = useEditorStore();
   const isMobile = useIsMobile();
 
+  const [goToLineOpen, setGoToLineOpen] = useState(false);
+  const [docLines, setDocLines] = useState(0);
+
   useBackendSync();
   useSwipeGesture();
+
+  // Auto-close sidebar on mobile
+  useEffect(() => {
+    if (isMobile && sidebarVisible) setSidebarVisible(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -61,6 +73,30 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTabs.length, files, openFile]);
 
+  // Sync fullscreen with browser Fullscreen API
+  useEffect(() => {
+    if (isFullscreen) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }, [isFullscreen]);
+
+  // Sync browser fullscreen exit (Escape) with store
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && isFullscreen) toggleFullscreen();
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [isFullscreen, toggleFullscreen]);
+
+  const openGoToLine = useCallback(() => {
+    const view = getCurrentEditorView();
+    setDocLines(view?.state.doc.lines ?? 0);
+    setGoToLineOpen(true);
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const meta = e.metaKey || e.ctrlKey;
@@ -72,6 +108,8 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
         if (!panelVisible) togglePanel();
       }
       if (meta && e.key === "Enter") { e.preventDefault(); executeRun(); }
+      if (meta && e.key === "g") { e.preventDefault(); openGoToLine(); }
+      if (e.key === "F11") { e.preventDefault(); toggleFullscreen(); }
       if (meta && e.shiftKey && e.key === "E") {
         e.preventDefault();
         setActiveSidePanel("explorer");
@@ -87,8 +125,14 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
         setActivePanel("problems");
         if (!panelVisible) togglePanel();
       }
+      if (meta && e.shiftKey && e.key === "I") {
+        e.preventDefault();
+        setActivePanel("input");
+        if (!panelVisible) togglePanel();
+      }
     },
-    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel, panelVisible, sidebarVisible, executeRun]
+    [saveCurrentFile, toggleSidebar, togglePanel, setActivePanel, setActiveSidePanel,
+     panelVisible, sidebarVisible, executeRun, openGoToLine, toggleFullscreen]
   );
 
   useEffect(() => {
@@ -100,16 +144,24 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
 
   return (
     <div className="flex flex-col h-dvh w-screen overflow-hidden bg-background" data-testid="editor-page">
-      <TitleBar authUser={authUser} onSignOut={onSignOut} />
+      <GoToLineDialog
+        open={goToLineOpen}
+        onClose={() => setGoToLineOpen(false)}
+        totalLines={docLines}
+      />
+
+      {!isFullscreen && <TitleBar authUser={authUser} onSignOut={onSignOut} onGoToLine={openGoToLine} />}
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Activity bar — hidden on mobile (swipe opens sidebar instead) */}
-        <div className="hidden sm:flex h-full">
-          <ActivityBar />
-        </div>
+        {/* Activity bar — hidden on mobile and in fullscreen */}
+        {!isFullscreen && (
+          <div className="hidden sm:flex h-full">
+            <ActivityBar />
+          </div>
+        )}
 
-        {/* Sidebar — overlay on mobile, inline on desktop */}
-        {sidebarVisible && (
+        {/* Sidebar — overlay on mobile, inline on desktop; hidden in fullscreen */}
+        {sidebarVisible && !isFullscreen && (
           <>
             {isMobile && (
               <div
@@ -131,17 +183,17 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
         )}
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          <TabBar />
+          {!isFullscreen && <TabBar />}
           <div className="flex-1 overflow-hidden">
             <EditorArea />
           </div>
-          <MobileSymbolBar />
-          <BottomPanel />
+          {!isFullscreen && <MobileSymbolBar />}
+          {!isFullscreen && <BottomPanel />}
         </div>
       </div>
 
-      <FloatingRunButton />
-      <StatusBar />
+      {!isFullscreen && <FloatingRunButton />}
+      {!isFullscreen && <StatusBar />}
     </div>
   );
 }
