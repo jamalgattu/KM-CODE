@@ -34,6 +34,7 @@ const MENU_ITEMS = {
     { type: "separator" },
     { label: "Terminal", shortcut: "⌃`" },
     { label: "Problems", shortcut: "⌘⇧M" },
+    { label: "Input (stdin)", shortcut: "⌘⇧I" },
     { label: "Preview", shortcut: "" },
     { type: "separator" },
     { label: "Toggle Sidebar", shortcut: "⌘B" },
@@ -113,6 +114,7 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
       case "Download File": handleDownload(); break;
       case "Terminal": setActivePanel("terminal"); if (!panelVisible) togglePanel(); break;
       case "Problems": setActivePanel("problems"); if (!panelVisible) togglePanel(); break;
+      case "Input (stdin)": setActivePanel("input"); if (!panelVisible) togglePanel(); break;
       case "Preview": setActivePanel("preview" as never); if (!panelVisible) togglePanel(); break;
       case "Toggle Sidebar": toggleSidebar(); break;
       case "Toggle Theme": setTheme(theme === "dark" ? "light" : "dark"); break;
