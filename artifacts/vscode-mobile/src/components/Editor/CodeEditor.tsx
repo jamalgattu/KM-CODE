@@ -4,7 +4,7 @@ import {
   drawSelection, rectangularSelection, crosshairCursor, dropCursor, highlightSpecialChars,
 } from "@codemirror/view";
 import { Compartment, EditorState } from "@codemirror/state";
-import { defaultKeymap, history, historyKeymap, indentWithTab, commentKeymap, moveLineUp, moveLineDown } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab, toggleComment, moveLineUp, moveLineDown } from "@codemirror/commands";
 import {
   indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
   HighlightStyle, defaultHighlightStyle,
@@ -169,7 +169,7 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         ...historyKeymap,
         ...completionKeymap,
         ...lintKeymap,
-        ...commentKeymap,
+        { key: "Mod-/",         run: toggleComment },
         indentWithTab,
         { key: "Alt-ArrowUp",   run: moveLineUp },
         { key: "Alt-ArrowDown", run: moveLineDown },
