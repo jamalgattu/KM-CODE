@@ -198,7 +198,24 @@ function findParentAndRemove(nodes: FileNode[], id: string): boolean {
 
 // Judge0 Community Edition — free public API, verified working 2026
 // https://ce.judge0.com  (replaced Piston which went whitelist-only Feb 2026)
-const JUDGE0_URL = "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
+// base64_encoded=true is required for reliable stdin delivery on the free instance.
+const JUDGE0_URL = "https://ce.judge0.com/submissions?base64_encoded=true&wait=true";
+
+function b64enc(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+function b64dec(str: string | null | undefined): string {
+  if (!str) return "";
+  try {
+    const bin = atob(str);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch { return str; }
+}
 const JUDGE0_LANGS: Record<string, number> = {
   javascript: 63,
   typescript: 74,
@@ -644,13 +661,14 @@ Supported languages: JS, TS, Python, Java, C++, C,
         }
 
         // Judge0 CE — synchronous submission (wait=true returns result immediately)
+        // base64_encoded=true: encode request fields, decode response fields.
         const stdinValue = get().stdin;
         const submissionBody: Record<string, unknown> = {
-          source_code: submissionCode,
+          source_code: b64enc(submissionCode),
           language_id: languageId,
         };
         if (stdinValue.length > 0) {
-          submissionBody.stdin = stdinValue;
+          submissionBody.stdin = b64enc(stdinValue);
           const lineCount = stdinValue.split("\n").filter(Boolean).length;
           addOutputLine({ type: "system", content: `↳  stdin: ${lineCount} line(s) provided` });
         } else {
@@ -669,21 +687,25 @@ Supported languages: JS, TS, Python, Java, C++, C,
             const accepted = statusId === 3;
             const exitCode = accepted ? 0 : statusId;
 
+            const stdout = b64dec(data.stdout);
+            const stderr = b64dec(data.stderr);
+            const compileOutput = b64dec(data.compile_output);
+
             // Compile error takes priority
-            if (data.compile_output) {
-              data.compile_output.split("\n").filter(Boolean).forEach((l: string) => {
+            if (compileOutput) {
+              compileOutput.split("\n").filter(Boolean).forEach((l: string) => {
                 addOutputLine({ type: "stderr", content: l });
                 addTerminalLine({ type: "error", content: l });
               });
             } else {
-              if (data.stdout) {
-                data.stdout.split("\n").forEach((l: string) => {
+              if (stdout) {
+                stdout.split("\n").forEach((l: string) => {
                   addOutputLine({ type: "stdout", content: l });
                   addTerminalLine({ type: "output", content: l });
                 });
               }
-              if (data.stderr) {
-                const stderrLines = data.stderr.split("\n").filter(Boolean) as string[];
+              if (stderr) {
+                const stderrLines = stderr.split("\n").filter(Boolean);
                 const seenHints = new Set<string>();
                 stderrLines.forEach((l: string) => {
                   addOutputLine({ type: "stderr", content: l });
@@ -798,8 +820,8 @@ Supported languages: JS, TS, Python, Java, C++, C,
           }
 
           try {
-            const body: Record<string, unknown> = { source_code: fileContent, language_id: languageId };
-            if (tc.stdin.trim()) body.stdin = tc.stdin;
+            const body: Record<string, unknown> = { source_code: b64enc(fileContent), language_id: languageId };
+            if (tc.stdin.trim()) body.stdin = b64enc(tc.stdin);
 
             const resp = await fetch(JUDGE0_URL, {
               method: "POST",
@@ -810,18 +832,22 @@ Supported languages: JS, TS, Python, Java, C++, C,
             const accepted = data.status?.id === 3;
             const durationMs = data.time ? Math.round(Number(data.time) * 1000) : 0;
 
-            if (data.compile_output) {
-              data.compile_output.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            const tcStdout = b64dec(data.stdout);
+            const tcStderr = b64dec(data.stderr);
+            const tcCompile = b64dec(data.compile_output);
+
+            if (tcCompile) {
+              tcCompile.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
             }
-            if (data.stdout) {
-              data.stdout.split("\n").forEach((l: string) => addLine({ type: "stdout", content: l }));
+            if (tcStdout) {
+              tcStdout.split("\n").forEach((l: string) => addLine({ type: "stdout", content: l }));
             }
-            if (data.stderr) {
-              data.stderr.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            if (tcStderr) {
+              tcStderr.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
             }
 
             if (tc.expectedOutput.trim()) {
-              const actual = (data.stdout || "").trimEnd();
+              const actual = tcStdout.trimEnd();
               const expected = tc.expectedOutput.trimEnd();
               if (actual === expected) {
                 addLine({ type: "success", content: `✓ Passed${durationMs ? `  ·  ${durationMs}ms` : ""}` });
