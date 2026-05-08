@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw } from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw, Copy } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { FileNode } from "@/types/editor";
 import { cn } from "@/lib/utils";
@@ -28,10 +28,9 @@ function getExtColor(name: string): string {
 function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameName, setRenameName] = useState(node.name);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const renameRef = useRef<HTMLInputElement>(null);
 
-  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent, setSidebarVisible } = useEditorStore();
+  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent, setSidebarVisible, duplicateFile } = useEditorStore();
 
   const handleClick = () => {
     if (node.type === "folder") {
@@ -126,7 +125,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           </span>
         )}
 
-        <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
+        <div className={cn("items-center gap-0.5 ml-auto", isSelected ? "flex" : "hidden group-hover:flex")}>
           {node.type === "folder" && (
             <>
               <NewFileDialog
@@ -178,32 +177,30 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           >
             <Edit2 size={13} />
           </button>
-          {confirmDelete ? (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); deleteFile(node.id); }}
-                className="px-1 py-0.5 text-[10px] rounded bg-destructive/80 text-white hover:bg-destructive font-medium"
-                title="Confirm delete"
-              >
-                Del
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
-                className="px-1 py-0.5 text-[10px] rounded bg-muted text-muted-foreground hover:text-foreground font-medium"
-                title="Cancel"
-              >
-                ✕
-              </button>
-            </>
-          ) : (
+          {node.type === "file" && (
             <button
-              onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-              className="p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
-              title="Delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                duplicateFile(node.id);
+              }}
+              className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+              title="Duplicate"
             >
-              <Trash2 size={13} />
+              <Copy size={13} />
             </button>
           )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Delete "${node.name}"?`)) {
+                deleteFile(node.id);
+              }
+            }}
+            className="p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive"
+            title="Delete"
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       </div>
 
