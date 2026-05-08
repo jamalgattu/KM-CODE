@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
+import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, TestCase, getLanguageFromPath } from "@/types/editor";
+import { getErrorHint, getStatusHint } from "@/lib/errorFormatter";
 import { getCurrentEditorView } from "@/lib/editorView";
 
 const DEFAULT_FILES: FileNode[] = [
@@ -136,7 +137,7 @@ interface EditorStore extends EditorState {
 
   setSearchQuery: (query: string) => void;
   setSearchResults: (results: SearchResult[]) => void;
-  searchInFiles: (query: string, opts?: { caseSensitive?: boolean; useRegex?: boolean }) => void;
+  searchInFiles: (query: string) => void;
 
   addTerminalLine: (line: Omit<TerminalLine, "id" | "timestamp">) => void;
   clearTerminal: () => void;
@@ -145,13 +146,20 @@ interface EditorStore extends EditorState {
   addOutputLine: (line: Omit<OutputLine, "id" | "timestamp">) => void;
   clearOutput: () => void;
   executeRun: () => void;
+  setStdin: (stdin: string) => void;
 
   setProblems: (problems: Problem[]) => void;
   addProblem: (problem: Omit<Problem, "id">) => void;
 
+  toggleFullscreen: () => void;
+  addTestCase: () => void;
+  removeTestCase: (id: string) => void;
+  updateTestCase: (id: string, stdin: string, expectedOutput?: string) => void;
+  setActiveTestCase: (id: string | null) => void;
+  runAllTestCases: () => void;
+  duplicateFile: (id: string) => void;
+
   saveCurrentFile: () => void;
-  saveAllFiles: () => void;
-  stopRun: () => void;
   setFilesFromApi: (files: FileNode[]) => void;
 }
 
@@ -187,9 +195,6 @@ function findParentAndRemove(nodes: FileNode[], id: string): boolean {
   }
   return false;
 }
-
-// Module-level rate-limit tracker — lives outside Zustand to avoid store mutation
-let _lastRunAt = 0;
 
 // Judge0 Community Edition — free public API, verified working 2026
 // https://ce.judge0.com  (replaced Piston which went whitelist-only Feb 2026)
@@ -248,6 +253,10 @@ export const useEditorStore = create<EditorStore>()(
       outputLines: [],
       outputMeta: null,
       isRunning: false,
+      stdin: "",
+      isFullscreen: false,
+      testCases: [],
+      activeTestCaseId: null,
 
       getFileById: (fileId) => findFileById(get().files, fileId),
       getAllFiles: () => getAllFilesFlat(get().files),
@@ -434,45 +443,25 @@ export const useEditorStore = create<EditorStore>()(
       setSearchQuery: (searchQuery) => set({ searchQuery }),
       setSearchResults: (searchResults) => set({ searchResults }),
 
-      searchInFiles: (query, opts) => {
+      searchInFiles: (query) => {
         if (!query.trim()) {
           set({ searchResults: [] });
           return;
         }
-        const { caseSensitive = false, useRegex = false } = opts ?? {};
         const files = getAllFilesFlat(get().files);
         const results: SearchResult[] = [];
-
-        let pattern: RegExp | null = null;
-        if (useRegex) {
-          try {
-            pattern = new RegExp(query, caseSensitive ? "g" : "gi");
-          } catch {
-            // Invalid regex — fall back to literal search
-          }
-        }
-
         for (const file of files) {
           if (!file.content) continue;
           const lines = file.content.split("\n");
           const matches = [];
           for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let idx = -1;
-            if (pattern) {
-              pattern.lastIndex = 0;
-              idx = pattern.test(line) ? line.search(new RegExp(query, caseSensitive ? "" : "i")) : -1;
-            } else {
-              idx = caseSensitive
-                ? line.indexOf(query)
-                : line.toLowerCase().indexOf(query.toLowerCase());
-            }
+            const idx = lines[i].toLowerCase().indexOf(query.toLowerCase());
             if (idx !== -1) {
               matches.push({
                 line: i + 1,
                 column: idx + 1,
-                text: line,
-                preview: line.trim().substring(0, 80),
+                text: lines[i],
+                preview: lines[i].trim().substring(0, 80),
               });
             }
           }
@@ -582,11 +571,12 @@ Supported languages: JS, TS, Python, Java, C++, C,
         // Rate limit: prevent spamming Judge0 CE (free public API)
         if (state.isRunning) return;
         const now = Date.now();
-        if (now - _lastRunAt < 2000) {
+        const lastRun = (get() as { _lastRunAt?: number })._lastRunAt ?? 0;
+        if (now - lastRun < 2000) {
           addTerminalLine({ type: "error", content: "Please wait a moment before running again." });
           return;
         }
-        _lastRunAt = now;
+        (get() as { _lastRunAt?: number })._lastRunAt = now;
 
         const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
         if (!activeTab) {
@@ -636,14 +626,40 @@ Supported languages: JS, TS, Python, Java, C++, C,
         addOutputLine({ type: "system", content: "─".repeat(40) });
         addTerminalLine({ type: "info", content: `▶ Running ${fileName} (${lang})...` });
 
+        // Java: Judge0 CE compiles as Main.java and runs `java Main`.
+        // If the user's public class is named anything other than Main it fails.
+        // Fix: rename the public class (and all its references) to Main, then
+        // strip the `public` modifier from all remaining class declarations.
+        let submissionCode = fileContent;
+        if (lang === "java") {
+          let code = fileContent;
+          const publicClassMatch = code.match(/\bpublic\s+class\s+(\w+)/);
+          if (publicClassMatch && publicClassMatch[1] !== "Main") {
+            const oldName = publicClassMatch[1];
+            code = code.replace(new RegExp(`\\b${oldName}\\b`, "g"), "Main");
+          }
+          // Strip `public` from all class declarations (inner classes etc.)
+          code = code.replace(/\bpublic(\s+(?:final\s+|abstract\s+)?class\b)/g, "$1");
+          submissionCode = code;
+        }
+
         // Judge0 CE — synchronous submission (wait=true returns result immediately)
+        const stdinValue = get().stdin;
+        const submissionBody: Record<string, unknown> = {
+          source_code: submissionCode,
+          language_id: languageId,
+        };
+        if (stdinValue.length > 0) {
+          submissionBody.stdin = stdinValue;
+          const lineCount = stdinValue.split("\n").filter(Boolean).length;
+          addOutputLine({ type: "system", content: `↳  stdin: ${lineCount} line(s) provided` });
+        } else {
+          addOutputLine({ type: "system", content: `↳  stdin: none  (open Input tab to provide program input)` });
+        }
         fetch(JUDGE0_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            source_code: fileContent,
-            language_id: languageId,
-          }),
+          body: JSON.stringify(submissionBody),
         })
           .then((r) => r.json())
           .then((data) => {
@@ -667,13 +683,25 @@ Supported languages: JS, TS, Python, Java, C++, C,
                 });
               }
               if (data.stderr) {
-                data.stderr.split("\n").filter(Boolean).forEach((l: string) => {
+                const stderrLines = data.stderr.split("\n").filter(Boolean) as string[];
+                const seenHints = new Set<string>();
+                stderrLines.forEach((l: string) => {
                   addOutputLine({ type: "stderr", content: l });
                   addTerminalLine({ type: "error", content: l });
+                  const hint = getErrorHint(l, lang);
+                  if (hint && !seenHints.has(hint)) {
+                    seenHints.add(hint);
+                    addOutputLine({ type: "hint", content: hint });
+                  }
                 });
               }
               if (!accepted && data.status?.description) {
                 addOutputLine({ type: "stderr", content: `Runtime: ${data.status.description}` });
+              }
+              // Status-level hints (TLE, MLE, etc.)
+              const statusHint = getStatusHint(statusId);
+              if (statusHint && !accepted) {
+                addOutputLine({ type: "hint", content: statusHint });
               }
             }
 
@@ -698,6 +726,165 @@ Supported languages: JS, TS, Python, Java, C++, C,
             addTerminalLine({ type: "error", content: `Execution failed: ${err.message}` });
             set({ isRunning: false });
           });
+      },
+
+      setStdin: (stdin) => set({ stdin }),
+
+      toggleFullscreen: () => set((state) => ({ isFullscreen: !state.isFullscreen })),
+
+      addTestCase: () => {
+        const id = generateId();
+        set((state) => ({
+          testCases: [
+            ...state.testCases,
+            { id, label: `Case ${state.testCases.length + 1}`, stdin: "", expectedOutput: "" },
+          ],
+          activeTestCaseId: id,
+        }));
+      },
+
+      removeTestCase: (id) =>
+        set((state) => {
+          const cases = state.testCases.filter((c) => c.id !== id);
+          const activeId =
+            state.activeTestCaseId === id ? (cases[0]?.id ?? null) : state.activeTestCaseId;
+          return { testCases: cases, activeTestCaseId: activeId };
+        }),
+
+      updateTestCase: (id, stdin, expectedOutput) =>
+        set((state) => ({
+          testCases: state.testCases.map((c) =>
+            c.id === id
+              ? { ...c, stdin, ...(expectedOutput !== undefined ? { expectedOutput } : {}) }
+              : c
+          ),
+        })),
+
+      setActiveTestCase: (id) => set({ activeTestCaseId: id }),
+
+      runAllTestCases: async () => {
+        const state = get();
+        if (state.isRunning || state.testCases.length === 0) return;
+
+        const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
+        if (!activeTab) return;
+
+        const file = findFileById(state.files, activeTab.fileId);
+        const liveView = getCurrentEditorView();
+        const fileContent = liveView ? liveView.state.doc.toString() : (file?.content ?? "");
+        if (!fileContent.trim()) return;
+
+        const lang = (activeTab.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
+        const languageId = JUDGE0_LANGS[lang];
+        if (!languageId) return;
+
+        set({ isRunning: true, outputLines: [], outputMeta: null, activePanel: "output", panelVisible: true });
+
+        const addLine = (line: Omit<OutputLine, "id" | "timestamp">) => get().addOutputLine(line);
+
+        addLine({ type: "system", content: `▶  ${activeTab.fileName}  ·  ${lang}  ·  ${state.testCases.length} test case${state.testCases.length === 1 ? "" : "s"}` });
+        addLine({ type: "system", content: "─".repeat(40) });
+
+        let passed = 0;
+        let failed = 0;
+
+        for (let i = 0; i < state.testCases.length; i++) {
+          const tc = state.testCases[i];
+          if (i > 0) addLine({ type: "system", content: "" });
+          addLine({ type: "system", content: `● ${tc.label}` });
+          if (tc.stdin.trim()) {
+            const preview = tc.stdin.split("\n")[0];
+            addLine({ type: "hint", content: `  stdin: ${preview}${tc.stdin.includes("\n") ? " …" : ""}` });
+          }
+
+          try {
+            const body: Record<string, unknown> = { source_code: fileContent, language_id: languageId };
+            if (tc.stdin.trim()) body.stdin = tc.stdin;
+
+            const resp = await fetch(JUDGE0_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            const accepted = data.status?.id === 3;
+            const durationMs = data.time ? Math.round(Number(data.time) * 1000) : 0;
+
+            if (data.compile_output) {
+              data.compile_output.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            }
+            if (data.stdout) {
+              data.stdout.split("\n").forEach((l: string) => addLine({ type: "stdout", content: l }));
+            }
+            if (data.stderr) {
+              data.stderr.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            }
+
+            if (tc.expectedOutput.trim()) {
+              const actual = (data.stdout || "").trimEnd();
+              const expected = tc.expectedOutput.trimEnd();
+              if (actual === expected) {
+                addLine({ type: "success", content: `✓ Passed${durationMs ? `  ·  ${durationMs}ms` : ""}` });
+                passed++;
+              } else {
+                addLine({ type: "failure", content: `✗ Wrong Answer` });
+                addLine({ type: "hint", content: `  Expected: ${expected.substring(0, 100)}` });
+                failed++;
+              }
+            } else {
+              if (accepted) {
+                addLine({ type: "success", content: `✓ Accepted${durationMs ? `  ·  ${durationMs}ms` : ""}` });
+                passed++;
+              } else {
+                addLine({ type: "failure", content: `✗ ${data.status?.description ?? "Error"}` });
+                failed++;
+              }
+            }
+          } catch {
+            addLine({ type: "failure", content: `✗ Network error` });
+            failed++;
+          }
+        }
+
+        addLine({ type: "system", content: "─".repeat(40) });
+        addLine({
+          type: failed === 0 ? "success" : "failure",
+          content: `${passed}/${state.testCases.length} passed`,
+        });
+        set({ isRunning: false });
+      },
+
+      duplicateFile: (id) => {
+        const state = get();
+        const file = findFileById(state.files, id);
+        if (!file || file.type !== "file") return;
+        const newId = generateId();
+        const dotIdx = file.name.lastIndexOf(".");
+        const base = dotIdx > 0 ? file.name.slice(0, dotIdx) : file.name;
+        const ext = dotIdx > 0 ? file.name.slice(dotIdx) : "";
+        const newName = `${base}_copy${ext}`;
+        const dirPath = file.path.substring(0, file.path.lastIndexOf("/"));
+        const fileLang = file.language;
+        const fileContent = file.content;
+        set((state) => {
+          const files = JSON.parse(JSON.stringify(state.files)) as FileNode[];
+          function insertAfter(nodes: FileNode[]): boolean {
+            for (let i = 0; i < nodes.length; i++) {
+              if (nodes[i].id === id) {
+                nodes.splice(i + 1, 0, {
+                  id: newId, name: newName, type: "file",
+                  path: `${dirPath}/${newName}`,
+                  language: fileLang, content: fileContent,
+                });
+                return true;
+              }
+              if (nodes[i].children && insertAfter(nodes[i].children!)) return true;
+            }
+            return false;
+          }
+          insertAfter(files);
+          return { files };
+        });
       },
 
       setProblems: (problems) => set({ problems }),
@@ -730,28 +917,6 @@ Supported languages: JS, TS, Python, Java, C++, C,
         }));
       },
 
-      saveAllFiles: () => {
-        const state = get();
-        for (const tab of state.openTabs) {
-          const file = findFileById(state.files, tab.fileId);
-          if (file && file.content !== undefined) {
-            try {
-              localStorage.setItem(
-                `km-file-${file.path}`,
-                JSON.stringify({ content: file.content, savedAt: Date.now() })
-              );
-            } catch {}
-          }
-        }
-        set((s) => ({
-          openTabs: s.openTabs.map((t) => ({ ...t, isModified: false })),
-        }));
-      },
-
-      stopRun: () => {
-        set({ isRunning: false });
-      },
-
       setFilesFromApi: (files) => {
         set({ files, openTabs: [], activeTabId: null });
       },
@@ -771,6 +936,9 @@ Supported languages: JS, TS, Python, Java, C++, C,
         autoSave: state.autoSave,
         fontFamily: state.fontFamily,
         panelHeight: state.panelHeight,
+        stdin: state.stdin,
+        testCases: state.testCases,
+        activeTestCaseId: state.activeTestCaseId,
       }),
     }
   )
