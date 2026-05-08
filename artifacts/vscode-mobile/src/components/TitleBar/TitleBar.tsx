@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Save, Play, Loader2, TerminalSquare, Code2, LogOut, User, Cloud, CloudOff } from "lucide-react";
+import { Save, Play, Loader2, TerminalSquare, Code2, LogOut, User, Cloud, CloudOff, Maximize2, Minimize2, Archive } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { createZipBlob } from "@/lib/createZip";
 import type { AuthUser } from "@/hooks/useAuth";
+import { FileNode } from "@/types/editor";
 
 const MENU_ITEMS = {
   File: [
@@ -16,6 +18,7 @@ const MENU_ITEMS = {
     { label: "Auto Save", shortcut: "", toggle: "autoSave" },
     { type: "separator" },
     { label: "Download File", shortcut: "" },
+    { label: "Download Project (ZIP)", shortcut: "" },
   ],
   Edit: [
     { label: "Undo", shortcut: "⌘Z" },
@@ -23,6 +26,8 @@ const MENU_ITEMS = {
     { type: "separator" },
     { label: "Find", shortcut: "⌘F" },
     { label: "Replace", shortcut: "⌘H" },
+    { type: "separator" },
+    { label: "Go to Line", shortcut: "⌘G" },
     { type: "separator" },
     { label: "Select All", shortcut: "⌘A" },
   ],
@@ -38,6 +43,7 @@ const MENU_ITEMS = {
     { label: "Preview", shortcut: "" },
     { type: "separator" },
     { label: "Toggle Sidebar", shortcut: "⌘B" },
+    { label: "Toggle Fullscreen", shortcut: "F11" },
     { label: "Toggle Theme", shortcut: "" },
   ],
   Run: [
@@ -58,9 +64,10 @@ const MENU_ITEMS = {
 interface TitleBarProps {
   authUser: AuthUser | null;
   onSignOut: () => Promise<void>;
+  onGoToLine?: () => void;
 }
 
-export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
+export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -69,10 +76,21 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
     saveCurrentFile, togglePanel, setActivePanel, panelVisible,
     toggleSidebar, setActiveSidePanel, autoSave, setAutoSave,
     setTheme, theme, openTabs, activeTabId, files,
-    executeRun, isRunning,
+    executeRun, isRunning, isFullscreen, toggleFullscreen,
   } = useEditorStore();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
+
+  const getAllFilesFlat = (nodes: FileNode[]): { name: string; content: string }[] => {
+    const result: { name: string; content: string }[] = [];
+    for (const node of nodes) {
+      if (node.type === "file" && node.content !== undefined) {
+        result.push({ name: node.path.replace(/^\//, ""), content: node.content });
+      }
+      if (node.children) result.push(...getAllFilesFlat(node.children));
+    }
+    return result;
+  };
 
   const getFileContent = (fileId: string): string => {
     const findContent = (nodes: typeof files): string => {
@@ -100,6 +118,18 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadZip = () => {
+    const projectFiles = getAllFilesFlat(files);
+    if (projectFiles.length === 0) return;
+    const blob = createZipBlob(projectFiles);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "km-code-project.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleRunCode = () => {
     if (!panelVisible) togglePanel();
     executeRun();
@@ -112,11 +142,13 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
       case "Save All": openTabs.forEach(() => saveCurrentFile()); break;
       case "Auto Save": setAutoSave(!autoSave); break;
       case "Download File": handleDownload(); break;
+      case "Download Project (ZIP)": handleDownloadZip(); break;
       case "Terminal": setActivePanel("terminal"); if (!panelVisible) togglePanel(); break;
       case "Problems": setActivePanel("problems"); if (!panelVisible) togglePanel(); break;
       case "Input (stdin)": setActivePanel("input"); if (!panelVisible) togglePanel(); break;
       case "Preview": setActivePanel("preview" as never); if (!panelVisible) togglePanel(); break;
       case "Toggle Sidebar": toggleSidebar(); break;
+      case "Toggle Fullscreen": toggleFullscreen(); break;
       case "Toggle Theme": setTheme(theme === "dark" ? "light" : "dark"); break;
       case "Explorer": setActiveSidePanel("explorer"); break;
       case "Search": setActiveSidePanel("search"); break;
@@ -124,6 +156,7 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
       case "Extensions": setActiveSidePanel("extensions"); break;
       case "Run Code": handleRunCode(); break;
       case "Keyboard Shortcuts": setShortcutsOpen(true); break;
+      case "Go to Line": onGoToLine?.(); break;
     }
   };
 
@@ -203,6 +236,15 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
         <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
         <button
+          onClick={handleDownloadZip}
+          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          title="Download Project as ZIP"
+          data-testid="zip-button"
+        >
+          <Archive size={16} className="sm:w-[15px] sm:h-[15px]" />
+        </button>
+
+        <button
           onClick={saveCurrentFile}
           className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
           title="Save (⌘S)"
@@ -232,6 +274,17 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
           <TerminalSquare size={16} className="sm:w-[15px] sm:h-[15px]" />
         </button>
 
+        <button
+          onClick={toggleFullscreen}
+          className="hidden sm:flex p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          title={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
+          data-testid="fullscreen-button"
+        >
+          {isFullscreen
+            ? <Minimize2 size={15} />
+            : <Maximize2 size={15} />}
+        </button>
+
         {/* User avatar / account menu */}
         <div className="relative ml-0.5">
           <button
@@ -251,7 +304,6 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
                 <User size={13} className="text-muted-foreground" />
               </div>
             )}
-            {/* Sync indicator */}
             <span
               className={cn(
                 "absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full border-2 border-sidebar",
@@ -264,7 +316,6 @@ export function TitleBar({ authUser, onSignOut }: TitleBarProps) {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
               <div className="absolute right-0 top-full mt-1 z-50 w-60 bg-popover border border-popover-border rounded-xl shadow-2xl overflow-hidden">
-                {/* User info */}
                 <div className="px-4 py-3 border-b border-border">
                   {authUser ? (
                     <>

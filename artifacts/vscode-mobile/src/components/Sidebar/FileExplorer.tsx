@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw } from "lucide-react";
+import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FilePlus, FolderPlus, Trash2, Edit2, RefreshCw, Copy } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { FileNode } from "@/types/editor";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
   const [renameName, setRenameName] = useState(node.name);
   const renameRef = useRef<HTMLInputElement>(null);
 
-  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent, setSidebarVisible } = useEditorStore();
+  const { openFile, toggleFolder, deleteFile, renameFile, addFile, updateFileContent, setSidebarVisible, duplicateFile } = useEditorStore();
 
   const handleClick = () => {
     if (node.type === "folder") {
@@ -177,6 +177,18 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           >
             <Edit2 size={13} />
           </button>
+          {node.type === "file" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                duplicateFile(node.id);
+              }}
+              className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
+              title="Duplicate"
+            >
+              <Copy size={13} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

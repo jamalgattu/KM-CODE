@@ -6,7 +6,7 @@ import {
 import { Compartment, EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab, toggleComment, moveLineUp, moveLineDown } from "@codemirror/commands";
 import {
-  indentOnInput, bracketMatching, foldGutter, syntaxHighlighting,
+  indentOnInput, bracketMatching, foldGutter, foldKeymap, syntaxHighlighting,
   HighlightStyle, defaultHighlightStyle,
 } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
@@ -107,7 +107,9 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const contentRef = useRef(content);
-  const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers, fontFamily } = useEditorStore();
+  const { theme, fontSize, tabSize, wordWrap, lineNumbers: showLineNumbers, fontFamily, setFontSize } = useEditorStore();
+  const fontSizeRef = useRef(fontSize);
+  fontSizeRef.current = fontSize;
 
   // Compartments for dynamic reconfiguration without rebuilding the whole editor
   const wordWrapComp   = useRef(new Compartment());
@@ -169,6 +171,7 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
         ...historyKeymap,
         ...completionKeymap,
         ...lintKeymap,
+        ...foldKeymap,
         { key: "Mod-/",         run: toggleComment },
         indentWithTab,
         { key: "Alt-ArrowUp",   run: moveLineUp },
@@ -252,6 +255,44 @@ export function CodeEditor({ fileId, content, language, onChange, onCursorChange
       })),
     });
   }, [fontSize, fontFamily]);
+
+  // Pinch-to-zoom — adjusts font size on two-finger pinch gestures
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    let initialDist = 0;
+    let initialSize = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        initialDist = Math.hypot(
+          e.touches[1].clientX - e.touches[0].clientX,
+          e.touches[1].clientY - e.touches[0].clientY
+        );
+        initialSize = fontSizeRef.current;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialDist > 0) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[1].clientX - e.touches[0].clientX,
+          e.touches[1].clientY - e.touches[0].clientY
+        );
+        const newSize = Math.min(Math.max(Math.round(initialSize * (dist / initialDist)), 10), 36);
+        setFontSize(newSize);
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div

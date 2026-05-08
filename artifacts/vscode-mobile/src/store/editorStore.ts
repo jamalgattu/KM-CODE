@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, getLanguageFromPath } from "@/types/editor";
+import { EditorState, FileNode, Tab, TerminalLine, OutputLine, OutputMeta, SearchResult, Problem, TestCase, getLanguageFromPath } from "@/types/editor";
 import { getErrorHint, getStatusHint } from "@/lib/errorFormatter";
 import { getCurrentEditorView } from "@/lib/editorView";
 
@@ -151,6 +151,14 @@ interface EditorStore extends EditorState {
   setProblems: (problems: Problem[]) => void;
   addProblem: (problem: Omit<Problem, "id">) => void;
 
+  toggleFullscreen: () => void;
+  addTestCase: () => void;
+  removeTestCase: (id: string) => void;
+  updateTestCase: (id: string, stdin: string, expectedOutput?: string) => void;
+  setActiveTestCase: (id: string | null) => void;
+  runAllTestCases: () => void;
+  duplicateFile: (id: string) => void;
+
   saveCurrentFile: () => void;
   setFilesFromApi: (files: FileNode[]) => void;
 }
@@ -246,6 +254,9 @@ export const useEditorStore = create<EditorStore>()(
       outputMeta: null,
       isRunning: false,
       stdin: "",
+      isFullscreen: false,
+      testCases: [],
+      activeTestCaseId: null,
 
       getFileById: (fileId) => findFileById(get().files, fileId),
       getAllFiles: () => getAllFilesFlat(get().files),
@@ -719,6 +730,163 @@ Supported languages: JS, TS, Python, Java, C++, C,
 
       setStdin: (stdin) => set({ stdin }),
 
+      toggleFullscreen: () => set((state) => ({ isFullscreen: !state.isFullscreen })),
+
+      addTestCase: () => {
+        const id = generateId();
+        set((state) => ({
+          testCases: [
+            ...state.testCases,
+            { id, label: `Case ${state.testCases.length + 1}`, stdin: "", expectedOutput: "" },
+          ],
+          activeTestCaseId: id,
+        }));
+      },
+
+      removeTestCase: (id) =>
+        set((state) => {
+          const cases = state.testCases.filter((c) => c.id !== id);
+          const activeId =
+            state.activeTestCaseId === id ? (cases[0]?.id ?? null) : state.activeTestCaseId;
+          return { testCases: cases, activeTestCaseId: activeId };
+        }),
+
+      updateTestCase: (id, stdin, expectedOutput) =>
+        set((state) => ({
+          testCases: state.testCases.map((c) =>
+            c.id === id
+              ? { ...c, stdin, ...(expectedOutput !== undefined ? { expectedOutput } : {}) }
+              : c
+          ),
+        })),
+
+      setActiveTestCase: (id) => set({ activeTestCaseId: id }),
+
+      runAllTestCases: async () => {
+        const state = get();
+        if (state.isRunning || state.testCases.length === 0) return;
+
+        const activeTab = state.openTabs.find((t) => t.id === state.activeTabId);
+        if (!activeTab) return;
+
+        const file = findFileById(state.files, activeTab.fileId);
+        const liveView = getCurrentEditorView();
+        const fileContent = liveView ? liveView.state.doc.toString() : (file?.content ?? "");
+        if (!fileContent.trim()) return;
+
+        const lang = (activeTab.language || getLanguageFromPath(activeTab.fileName)).toLowerCase();
+        const languageId = JUDGE0_LANGS[lang];
+        if (!languageId) return;
+
+        set({ isRunning: true, outputLines: [], outputMeta: null, activePanel: "output", panelVisible: true });
+
+        const addLine = (line: Omit<OutputLine, "id" | "timestamp">) => get().addOutputLine(line);
+
+        addLine({ type: "system", content: `▶  ${activeTab.fileName}  ·  ${lang}  ·  ${state.testCases.length} test case${state.testCases.length === 1 ? "" : "s"}` });
+        addLine({ type: "system", content: "─".repeat(40) });
+
+        let passed = 0;
+        let failed = 0;
+
+        for (let i = 0; i < state.testCases.length; i++) {
+          const tc = state.testCases[i];
+          if (i > 0) addLine({ type: "system", content: "" });
+          addLine({ type: "system", content: `● ${tc.label}` });
+          if (tc.stdin.trim()) {
+            const preview = tc.stdin.split("\n")[0];
+            addLine({ type: "hint", content: `  stdin: ${preview}${tc.stdin.includes("\n") ? " …" : ""}` });
+          }
+
+          try {
+            const body: Record<string, unknown> = { source_code: fileContent, language_id: languageId };
+            if (tc.stdin.trim()) body.stdin = tc.stdin;
+
+            const resp = await fetch(JUDGE0_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            const accepted = data.status?.id === 3;
+            const durationMs = data.time ? Math.round(Number(data.time) * 1000) : 0;
+
+            if (data.compile_output) {
+              data.compile_output.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            }
+            if (data.stdout) {
+              data.stdout.split("\n").forEach((l: string) => addLine({ type: "stdout", content: l }));
+            }
+            if (data.stderr) {
+              data.stderr.split("\n").filter(Boolean).forEach((l: string) => addLine({ type: "stderr", content: l }));
+            }
+
+            if (tc.expectedOutput.trim()) {
+              const actual = (data.stdout || "").trimEnd();
+              const expected = tc.expectedOutput.trimEnd();
+              if (actual === expected) {
+                addLine({ type: "success", content: `✓ Passed${durationMs ? `  ·  ${durationMs}ms` : ""}` });
+                passed++;
+              } else {
+                addLine({ type: "failure", content: `✗ Wrong Answer` });
+                addLine({ type: "hint", content: `  Expected: ${expected.substring(0, 100)}` });
+                failed++;
+              }
+            } else {
+              if (accepted) {
+                addLine({ type: "success", content: `✓ Accepted${durationMs ? `  ·  ${durationMs}ms` : ""}` });
+                passed++;
+              } else {
+                addLine({ type: "failure", content: `✗ ${data.status?.description ?? "Error"}` });
+                failed++;
+              }
+            }
+          } catch {
+            addLine({ type: "failure", content: `✗ Network error` });
+            failed++;
+          }
+        }
+
+        addLine({ type: "system", content: "─".repeat(40) });
+        addLine({
+          type: failed === 0 ? "success" : "failure",
+          content: `${passed}/${state.testCases.length} passed`,
+        });
+        set({ isRunning: false });
+      },
+
+      duplicateFile: (id) => {
+        const state = get();
+        const file = findFileById(state.files, id);
+        if (!file || file.type !== "file") return;
+        const newId = generateId();
+        const dotIdx = file.name.lastIndexOf(".");
+        const base = dotIdx > 0 ? file.name.slice(0, dotIdx) : file.name;
+        const ext = dotIdx > 0 ? file.name.slice(dotIdx) : "";
+        const newName = `${base}_copy${ext}`;
+        const dirPath = file.path.substring(0, file.path.lastIndexOf("/"));
+        const fileLang = file.language;
+        const fileContent = file.content;
+        set((state) => {
+          const files = JSON.parse(JSON.stringify(state.files)) as FileNode[];
+          function insertAfter(nodes: FileNode[]): boolean {
+            for (let i = 0; i < nodes.length; i++) {
+              if (nodes[i].id === id) {
+                nodes.splice(i + 1, 0, {
+                  id: newId, name: newName, type: "file",
+                  path: `${dirPath}/${newName}`,
+                  language: fileLang, content: fileContent,
+                });
+                return true;
+              }
+              if (nodes[i].children && insertAfter(nodes[i].children!)) return true;
+            }
+            return false;
+          }
+          insertAfter(files);
+          return { files };
+        });
+      },
+
       setProblems: (problems) => set({ problems }),
       addProblem: (problem) =>
         set((state) => ({
@@ -769,6 +937,8 @@ Supported languages: JS, TS, Python, Java, C++, C,
         fontFamily: state.fontFamily,
         panelHeight: state.panelHeight,
         stdin: state.stdin,
+        testCases: state.testCases,
+        activeTestCaseId: state.activeTestCaseId,
       }),
     }
   )

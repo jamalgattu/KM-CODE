@@ -38,6 +38,9 @@ export interface EditorState {
   activePanel: "terminal" | "problems" | "output" | "search" | "preview" | "input";
   activeSidePanel: "explorer" | "search" | "git" | "extensions" | "settings";
   stdin: string;
+  isFullscreen: boolean;
+  testCases: TestCase[];
+  activeTestCaseId: string | null;
   searchQuery: string;
   searchResults: SearchResult[];
   gitBranch: string;
@@ -74,6 +77,13 @@ export interface TerminalLine {
   type: "input" | "output" | "error" | "info";
   content: string;
   timestamp: number;
+}
+
+export interface TestCase {
+  id: string;
+  label: string;
+  stdin: string;
+  expectedOutput: string;
 }
 
 export interface OutputLine {
