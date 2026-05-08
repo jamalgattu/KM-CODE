@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Trash2, Play, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Trash2, Play, Loader2, CheckCircle, XCircle, Clock, Lightbulb } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 
@@ -109,10 +109,14 @@ export function OutputPanel() {
                   line.type === "system"  && "text-muted-foreground italic",
                   line.type === "success" && "text-green-400 font-medium",
                   line.type === "failure" && "text-red-400 font-medium",
+                  line.type === "hint"    && "text-amber-400/90 bg-amber-500/8 rounded px-1.5 py-0.5 border-l-2 border-amber-500/50",
                 )}
               >
                 {line.type === "stderr" && (
                   <span className="text-red-500 mr-1 text-[10px] font-bold">ERR</span>
+                )}
+                {line.type === "hint" && (
+                  <Lightbulb size={10} className="inline mr-1 mb-0.5 text-amber-400 shrink-0" />
                 )}
                 {line.content}
               </div>
