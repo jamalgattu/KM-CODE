@@ -638,9 +638,12 @@ Supported languages: JS, TS, Python, Java, C++, C,
           source_code: submissionCode,
           language_id: languageId,
         };
-        if (stdinValue.trim()) {
+        if (stdinValue.length > 0) {
           submissionBody.stdin = stdinValue;
-          addOutputLine({ type: "system", content: `↳  stdin: ${stdinValue.split("\n").length} line(s)` });
+          const lineCount = stdinValue.split("\n").filter(Boolean).length;
+          addOutputLine({ type: "system", content: `↳  stdin: ${lineCount} line(s) provided` });
+        } else {
+          addOutputLine({ type: "system", content: `↳  stdin: none  (open Input tab to provide program input)` });
         }
         fetch(JUDGE0_URL, {
           method: "POST",
@@ -765,6 +768,7 @@ Supported languages: JS, TS, Python, Java, C++, C,
         autoSave: state.autoSave,
         fontFamily: state.fontFamily,
         panelHeight: state.panelHeight,
+        stdin: state.stdin,
       }),
     }
   )

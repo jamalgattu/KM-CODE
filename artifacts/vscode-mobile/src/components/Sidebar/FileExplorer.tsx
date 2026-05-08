@@ -125,7 +125,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           </span>
         )}
 
-        <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
+        <div className={cn("items-center gap-0.5 ml-auto", isSelected ? "flex" : "hidden group-hover:flex")}>
           {node.type === "folder" && (
             <>
               <NewFileDialog
