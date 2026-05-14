@@ -92,7 +92,7 @@ export function PWAInstallPrompt() {
       <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="w-full max-w-sm bg-[#1e1e2e] border border-white/10 rounded-2xl p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-white font-semibold">Install KM Code</span>
+            <span className="text-white font-semibold">Install Su Zai Zai Code</span>
             <button onClick={dismiss} className="text-slate-400 hover:text-white p-1">
               <X size={18} />
             </button>
@@ -105,7 +105,7 @@ export function PWAInstallPrompt() {
               Scroll down and tap <strong className="text-white">Add to Home Screen</strong>
             </Step>
             <Step n={3} icon={<Download size={16} className="text-blue-400" />}>
-              Tap <strong className="text-white">Add</strong> — KM Code appears on your home screen!
+              Tap <strong className="text-white">Add</strong> — Su Zai Zai Code appears on your home screen!
             </Step>
           </div>
           <button
@@ -134,7 +134,7 @@ export function PWAInstallPrompt() {
           <span className="text-xl">⚡</span>
         </div>
         <div>
-          <div className="text-white font-semibold text-sm leading-tight">Install KM Code</div>
+          <div className="text-white font-semibold text-sm leading-tight">Install Su Zai Zai Code</div>
           <div className="text-slate-400 text-xs mt-0.5">
             {platform === "ios"
               ? "Add to home screen for the best experience"
