@@ -3,31 +3,29 @@ import { Download, X } from "lucide-react";
 
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [show, setShow] = useState(false);
+  const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    // Check if already dismissed
-    const wasDismissed = localStorage.getItem("pwa-prompt-dismissed");
-    if (wasDismissed) return;
+    // Already installed as PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setInstalled(true);
+      return;
+    }
 
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    // Already dismissed
+    if (localStorage.getItem("pwa-dismissed")) return;
 
-    // Android/Chrome install prompt
+    // Show after 2 seconds always
+    const timer = setTimeout(() => setShow(true), 2000);
+
+    // Catch Chrome's prompt when available
     window.addEventListener("beforeinstallprompt", (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setTimeout(() => setShowPrompt(true), 3000);
     });
 
-    // iOS detection
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    const isInStandaloneMode = window.navigator.standalone === true;
-    if (isIOS && !isInStandaloneMode) {
-      setTimeout(() => setShowPrompt(true), 3000);
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   const handleInstall = async () => {
@@ -35,99 +33,64 @@ export function PWAInstallPrompt() {
       deferredPrompt.prompt();
       const result = await deferredPrompt.userChoice;
       if (result.outcome === "accepted") {
-        setShowPrompt(false);
+        setShow(false);
+        setInstalled(true);
       }
-      setDeferredPrompt(null);
     } else {
-      // iOS — show manual guide
-      setShowIOSGuide(true);
+      // Show manual instructions
+      alert(
+        "To install:\n\n" +
+        "Android: Tap ⋮ menu → 'Add to Home screen'\n\n" +
+        "iPhone: Tap Share button → 'Add to Home Screen'"
+      );
     }
   };
 
   const handleDismiss = () => {
-    setShowPrompt(false);
-    setDismissed(true);
-    localStorage.setItem("pwa-prompt-dismissed", "true");
+    setShow(false);
+    localStorage.setItem("pwa-dismissed", "true");
   };
 
-  if (!showPrompt || dismissed) return null;
+  if (installed || !show) return null;
 
   return (
-    <>
-      {/* Main prompt */}
-      {!showIOSGuide && (
-        <div className="fixed bottom-20 left-3 right-3 z-50 bg-[#1e1e2e] border border-blue-500/30 rounded-xl shadow-2xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
-              <span className="text-lg">⚡</span>
-            </div>
-            <div className="flex-1">
-              <div className="text-white font-semibold text-sm">
-                Install Su Zai Zai Code
-              </div>
-              <div className="text-gray-400 text-xs mt-0.5">
-                Add to home screen for the best experience. Works offline too!
-              </div>
-            </div>
-            <button
-              onClick={handleDismiss}
-              className="text-gray-500 hover:text-gray-300 p-1"
-            >
-              <X size={16} />
-            </button>
-          </div>
+    <div className="fixed bottom-16 left-3 right-3 z-50 bg-[#1e1e2e] border border-blue-500/40 rounded-2xl shadow-2xl p-4 animate-in slide-in-from-bottom-4">
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 text-gray-500 hover:text-gray-300"
+      >
+        <X size={16} />
+      </button>
 
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleDismiss}
-              className="flex-1 py-2 rounded-lg text-xs text-gray-400 border border-gray-700 hover:bg-gray-800 transition-colors"
-            >
-              Not now
-            </button>
-            <button
-              onClick={handleInstall}
-              className="flex-1 py-2 rounded-lg text-xs text-white bg-blue-600 hover:bg-blue-500 transition-colors flex items-center justify-center gap-1"
-            >
-              <Download size={12} />
-              Install App
-            </button>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-2xl shrink-0">
+          ⚡
+        </div>
+        <div>
+          <div className="text-white font-semibold text-sm">
+            Install Su Zai Zai Code
+          </div>
+          <div className="text-gray-400 text-xs mt-0.5">
+            Code on your phone. Free forever.
           </div>
         </div>
-      )}
+      </div>
 
-      {/* iOS manual guide */}
-      {showIOSGuide && (
-        <div className="fixed bottom-20 left-3 right-3 z-50 bg-[#1e1e2e] border border-blue-500/30 rounded-xl shadow-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-white font-semibold text-sm">
-              Install on iPhone
-            </span>
-            <button onClick={() => setShowPrompt(false)} className="text-gray-500">
-              <X size={16} />
-            </button>
-          </div>
-          <div className="space-y-2 text-xs text-gray-300">
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs shrink-0">1</span>
-              <span>Tap the <strong>Share</strong> button (box with arrow) at bottom of Safari</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs shrink-0">2</span>
-              <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs shrink-0">3</span>
-              <span>Tap <strong>"Add"</strong> in the top right</span>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowPrompt(false)}
-            className="w-full mt-3 py-2 rounded-lg text-xs text-white bg-blue-600 hover:bg-blue-500 transition-colors"
-          >
-            Got it!
-          </button>
-        </div>
-      )}
-    </>
+      <div className="flex gap-2">
+        <button
+          onClick={handleDismiss}
+          className="flex-1 py-2 rounded-xl text-xs text-gray-400 border border-gray-700"
+        >
+          Not now
+        </button>
+        <button
+          onClick={handleInstall}
+          className="flex-1 py-2 rounded-xl text-xs text-white bg-blue-600 hover:bg-blue-500 flex items-center justify-center gap-1"
+        >
+          <Download size={12} />
+          Install
+        </button>
+      </div>
+    </div>
   );
-                            }
+        }
