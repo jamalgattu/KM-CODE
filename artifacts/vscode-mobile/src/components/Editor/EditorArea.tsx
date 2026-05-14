@@ -78,7 +78,7 @@ export function EditorArea() {
         backgroundColor: "var(--background)",
       });
       const link = document.createElement("a");
-      link.download = `km-code-debug-${Date.now()}.png`;
+      link.download = `szz-debug-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch {
@@ -103,7 +103,7 @@ export function EditorArea() {
             <Files size={40} className="text-muted-foreground/50" />
           </div>
           <div className="text-center">
-            <div className="text-base font-semibold text-foreground/70">KM Code Editor</div>
+            <div className="text-base font-semibold text-foreground/70">Su Zai Zai Code Editor</div>
             <div className="text-sm text-muted-foreground mt-1">Mobile-first. Open a file to start coding.</div>
           </div>
           <div className="flex flex-col items-center gap-1 text-xs text-muted-foreground mt-2">

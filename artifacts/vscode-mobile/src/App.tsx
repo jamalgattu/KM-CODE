@@ -27,7 +27,7 @@ function AuthGate() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center animate-pulse">
             <Zap size={24} className="text-white" fill="white" />
           </div>
-          <div className="text-slate-500 text-sm">Loading KM Code…</div>
+          <div className="text-slate-500 text-sm">Loading Su Zai Zai Code…</div>
         </div>
       </div>
     );

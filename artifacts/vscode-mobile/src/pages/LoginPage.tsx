@@ -51,7 +51,7 @@ export function LoginPage({ onGuest }: Props) {
             <Zap size={22} className="text-white" fill="white" />
           </div>
           <div>
-            <div className="text-xl font-bold text-white tracking-tight">KM Code</div>
+            <div className="text-xl font-bold text-white tracking-tight">Su Zai Zai Code</div>
             <div className="text-xs text-slate-400">Mobile-first code editor</div>
           </div>
         </div>

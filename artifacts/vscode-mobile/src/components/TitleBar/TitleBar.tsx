@@ -125,7 +125,7 @@ export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "km-code-project.zip";
+    a.download = "su-zai-zai-code-project.zip";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -227,7 +227,7 @@ export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
       {/* Center — file name */}
       <div className="flex-1 flex items-center justify-center min-w-0 px-2">
         <span className="text-xs text-muted-foreground truncate max-w-full">
-          {activeTab ? activeTab.fileName : "KM Code"}
+          {activeTab ? activeTab.fileName : "Su Zai Zai Code"}
         </span>
       </div>
 

@@ -11,7 +11,7 @@ const DEFAULT_FILES: FileNode[] = [
     type: "file",
     path: "/welcome.md",
     language: "markdown",
-    content: `# Welcome to KM Code! ⚡
+    content: `# Welcome to Su Zai Zai Code! ⚡
 
 A free mobile-first code editor for everyone.
 
@@ -54,7 +54,7 @@ Happy coding! 🚀
     type: "file",
     path: "/demo.py",
     language: "python",
-    content: `# KM Code — syntax highlighting demo
+    content: `# Su Zai Zai Code — syntax highlighting demo
 # Hit Run (or Ctrl+Enter) to execute!
 
 class Animal:
@@ -263,7 +263,7 @@ export const useEditorStore = create<EditorStore>()(
         {
           id: "welcome",
           type: "info",
-          content: "⚡ KM Code Terminal — type 'help' for commands.",
+          content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
           timestamp: Date.now(),
         },
       ],
@@ -508,7 +508,7 @@ export const useEditorStore = create<EditorStore>()(
             {
               id: generateId(),
               type: "info",
-              content: "⚡ KM Code Terminal — type 'help' for commands.",
+              content: "⚡ Su Zai Zai Code Terminal — type 'help' for commands.",
               timestamp: Date.now(),
             },
           ],
@@ -529,7 +529,7 @@ export const useEditorStore = create<EditorStore>()(
         if (trimmed === "help") {
           addTerminalLine({
             type: "output",
-            content: `⚡ KM Code Terminal
+            content: `⚡ Su Zai Zai Code Terminal
 ─────────────────────────────
   run         → execute current file via Judge0
   clear       → clear terminal
