@@ -1,6 +1,6 @@
-// KM Code Service Worker — v3
+// Su Zai Zai Code Service Worker — v3
 // Relative paths: works at / (Cloudflare Pages) and /KM-CODE/ (GitHub Pages).
-const CACHE = "km-code-v3";
+const CACHE = "szz-v3";
 const BASE = self.registration.scope; // e.g. "/" or "/KM-CODE/"
 
 // Pre-cache just the shell. Static assets get cached lazily on first request.
