@@ -5,6 +5,7 @@ import { EditorPage } from "@/pages/Editor";
 import { LoginPage } from "@/pages/LoginPage";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/useAuth";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { Zap } from "lucide-react";
 
 const queryClient = new QueryClient({
@@ -36,7 +37,12 @@ function AuthGate() {
     return <LoginPage onGuest={auth.continueAsGuest} />;
   }
 
-  return <EditorPage authUser={auth.user} onSignOut={auth.signOutUser} />;
+  return (
+    <>
+      <EditorPage authUser={auth.user} onSignOut={auth.signOutUser} />
+      <PWAInstallPrompt />
+    </>
+  );
 }
 
 function Router() {
