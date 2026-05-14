@@ -12,20 +12,26 @@ export const supabase = isSupabaseConfigured
 const authRedirectUrl = () =>
   window.location.origin + window.location.pathname.replace(/\/$/, '')
 
-export const signInWithGoogle = () => {
+export const signInWithGoogle = async () => {
   if (!isSupabaseConfigured) throw new Error('Supabase not configured')
-  return supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: authRedirectUrl() },
+    options: { redirectTo: authRedirectUrl(), skipBrowserRedirect: true },
   })
+  if (error) throw new Error(error.message)
+  if (!data?.url) throw new Error('No OAuth URL returned')
+  window.location.href = data.url
 }
 
-export const signInWithGitHub = () => {
+export const signInWithGitHub = async () => {
   if (!isSupabaseConfigured) throw new Error('Supabase not configured')
-  return supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
-    options: { redirectTo: authRedirectUrl() },
+    options: { redirectTo: authRedirectUrl(), skipBrowserRedirect: true },
   })
+  if (error) throw new Error(error.message)
+  if (!data?.url) throw new Error('No OAuth URL returned')
+  window.location.href = data.url
 }
 
 export const signOut = () => {
