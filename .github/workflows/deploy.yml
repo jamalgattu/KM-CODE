@@ -5,37 +5,71 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  deploy-github-pages:
+    name: GitHub Pages
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+      - uses: pnpm/action-setup@v3
         with:
           version: 9
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: pnpm
 
-      - name: Install dependencies
+      - name: Install
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build
-        run: pnpm --filter vscode-mobile build
+      - name: Build for GitHub Pages (base /KM-CODE/)
+        run: pnpm --filter @workspace/vscode-mobile run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           BASE_PATH: /KM-CODE/
           PORT: 3000
+          NODE_ENV: production
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./artifacts/vscode-mobile/dist/public      
+          publish_dir: ./artifacts/vscode-mobile/dist/public
+
+  deploy-cloudflare-pages:
+    name: Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build for Cloudflare Pages (base /)
+        run: pnpm --filter @workspace/vscode-mobile run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          BASE_PATH: /
+          PORT: 3000
+          NODE_ENV: production
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: suzaizai
+          directory: artifacts/vscode-mobile/dist/public
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
