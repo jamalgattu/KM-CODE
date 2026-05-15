@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, cloneElement, isValidElement } from "react";
 import { FilePlus, FolderPlus, X, ChevronDown } from "lucide-react";
 
 const TEMPLATES: Record<string, { label: string; extension: string; content: string }[]> = {
@@ -113,18 +113,27 @@ export function NewFileDialog({ onConfirm, defaultType = "file", trigger }: NewF
     if (e.key === "Escape") setOpen(false);
   };
 
+  // Inject onClick directly onto the trigger so stopPropagation inside it
+  // doesn't block the dialog from opening (wrapper-div approach breaks this).
+  const openHandler = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(true);
+  };
+
+  const triggerEl = trigger ?? (
+    <button
+      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+      title={type === "file" ? "New File" : "New Folder"}
+    >
+      {type === "file" ? <FilePlus size={15} /> : <FolderPlus size={15} />}
+    </button>
+  );
+
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {trigger ?? (
-          <button
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-            title={type === "file" ? "New File" : "New Folder"}
-          >
-            {type === "file" ? <FilePlus size={15} /> : <FolderPlus size={15} />}
-          </button>
-        )}
-      </div>
+      {isValidElement(triggerEl)
+        ? cloneElement(triggerEl as React.ReactElement<React.HTMLAttributes<HTMLElement>>, { onClick: openHandler })
+        : triggerEl}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

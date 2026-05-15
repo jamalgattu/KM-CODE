@@ -140,7 +140,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
                 }}
                 trigger={
                   <button
-                    onClick={(e) => e.stopPropagation()}
                     className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
                     title="New File"
                   >
@@ -156,7 +155,6 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
                 }}
                 trigger={
                   <button
-                    onClick={(e) => e.stopPropagation()}
                     className="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground"
                     title="New Folder"
                   >
@@ -246,11 +244,11 @@ export function FileExplorer() {
           <NewFileDialog
             defaultType="file"
             onConfirm={(name, content, type) => {
-              if (rootNode) {
-                const id = addFile(rootNode.id, name, type);
-                if (content && id) {
-                  setTimeout(() => updateFileContent(id, content), 50);
-                }
+              // rootNode may be undefined if all files were deleted — addFile
+              // falls back to root-level push when parentId has no match.
+              const id = addFile(rootNode?.id ?? "__root__", name, type);
+              if (content && id) {
+                setTimeout(() => updateFileContent(id, content), 50);
               }
             }}
             trigger={
@@ -266,7 +264,7 @@ export function FileExplorer() {
           <NewFileDialog
             defaultType="folder"
             onConfirm={(name, _, type) => {
-              if (rootNode) addFile(rootNode.id, name, type);
+              addFile(rootNode?.id ?? "__root__", name, type);
             }}
             trigger={
               <button
