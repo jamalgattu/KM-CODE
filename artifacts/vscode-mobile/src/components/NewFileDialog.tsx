@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, cloneElement, isValidElement } from "react";
 import { FilePlus, FolderPlus, X, ChevronDown } from "lucide-react";
 
 const TEMPLATES: Record<string, { label: string; extension: string; content: string }[]> = {
@@ -17,6 +17,8 @@ const TEMPLATES: Record<string, { label: string; extension: string; content: str
     { label: "Functions", extension: ".py", content: `def greet(name: str) -> str:\n    return f"Hello, {name}!"\n\nif __name__ == "__main__":\n    print(greet("World"))\n` },
     { label: "Class Example", extension: ".py", content: `class Animal:\n    def __init__(self, name: str):\n        self.name = name\n\n    def speak(self):\n        return f"{self.name} makes a sound"\n\ndog = Animal("Dog")\nprint(dog.speak())\n` },
     { label: "List Comprehension", extension: ".py", content: `numbers = [1, 2, 3, 4, 5]\nsquares = [x**2 for x in numbers]\nprint(squares)\n` },
+    { label: "CP Boilerplate", extension: ".py", content: `import sys\ninput = sys.stdin.readline\nfrom collections import defaultdict, deque\nfrom itertools import permutations, combinations\nfrom heapq import heappush, heappop\n\ndef solve():\n    n = int(input())\n    # your solution here\n    print(n)\n\nt = int(input())\n# t = 1\nfor _ in range(t):\n    solve()\n` },
+    { label: "CP Graph", extension: ".py", content: `import sys\nfrom collections import deque\ninput = sys.stdin.readline\n\ndef bfs(src, adj, n):\n    visited = [False] * (n + 1)\n    q = deque([src])\n    visited[src] = True\n    order = []\n    while q:\n        u = q.popleft()\n        order.append(u)\n        for v in adj[u]:\n            if not visited[v]:\n                visited[v] = True\n                q.append(v)\n    return order\n\ndef solve():\n    n, m = map(int, input().split())\n    adj = [[] for _ in range(n + 1)]\n    for _ in range(m):\n        u, v = map(int, input().split())\n        adj[u].append(v)\n        adj[v].append(u)\n    print(bfs(1, adj, n))\n\nt = 1\nfor _ in range(t):\n    solve()\n` },
   ],
   HTML: [
     { label: "Basic Page", extension: ".html", content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello, World!</h1>\n  <p>Welcome to my page.</p>\n</body>\n</html>\n` },
@@ -36,12 +38,16 @@ const TEMPLATES: Record<string, { label: string; extension: string; content: str
     { label: "Hello World", extension: ".java", content: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n` },
     { label: "Add Two Numbers", extension: ".java", content: `import java.util.Scanner;\n\npublic class AddNumbers {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n\n        int a, b, sum;\n\n        System.out.print("Enter first number: ");\n        a = sc.nextInt();\n\n        System.out.print("Enter second number: ");\n        b = sc.nextInt();\n\n        sum = a + b;\n\n        System.out.println("Sum = " + sum);\n    }\n}\n` },
     { label: "OOP Example", extension: ".java", content: `public class Animal {\n    String name;\n    String sound;\n\n    Animal(String name, String sound) {\n        this.name = name;\n        this.sound = sound;\n    }\n\n    void speak() {\n        System.out.println(this.name + " says " + this.sound);\n    }\n\n    public static void main(String[] args) {\n        Animal dog = new Animal("Dog", "Woof");\n        Animal cat = new Animal("Cat", "Meow");\n        dog.speak();\n        cat.speak();\n    }\n}\n` },
+    { label: "CP Boilerplate", extension: ".java", content: `import java.util.*;\nimport java.io.*;\n\npublic class Main {\n    static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));\n    static StringTokenizer st;\n    static PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));\n\n    static int ni() throws Exception {\n        if (st == null || !st.hasMoreTokens())\n            st = new StringTokenizer(br.readLine());\n        return Integer.parseInt(st.nextToken());\n    }\n    static long nl() throws Exception {\n        if (st == null || !st.hasMoreTokens())\n            st = new StringTokenizer(br.readLine());\n        return Long.parseLong(st.nextToken());\n    }\n\n    static void solve() throws Exception {\n        int n = ni();\n        out.println(n);\n    }\n\n    public static void main(String[] args) throws Exception {\n        int t = ni();\n        // int t = 1;\n        while (t-- > 0) solve();\n        out.flush();\n    }\n}\n` },
   ],
   "C++": [
     { label: "Hello World", extension: ".cpp", content: `#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}\n` },
+    { label: "CP Boilerplate", extension: ".cpp", content: `#include <bits/stdc++.h>\nusing namespace std;\n\n#define ll long long\n#define pii pair<int,int>\n#define vi vector<int>\n#define all(x) (x).begin(), (x).end()\n#define MOD 1000000007LL\n\nvoid solve() {\n    // Your solution here\n    int n;\n    cin >> n;\n    cout << n << "\\n";\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int t = 1;\n    // cin >> t;\n    while (t--) solve();\n\n    return 0;\n}\n` },
+    { label: "Graph BFS/DFS", extension: ".cpp", content: `#include <bits/stdc++.h>\nusing namespace std;\n\nconst int MAXN = 1e5 + 5;\nvector<int> adj[MAXN];\nbool visited[MAXN];\n\nvoid bfs(int src, int n) {\n    queue<int> q;\n    q.push(src);\n    visited[src] = true;\n    while (!q.empty()) {\n        int u = q.front(); q.pop();\n        for (int v : adj[u]) {\n            if (!visited[v]) {\n                visited[v] = true;\n                q.push(v);\n            }\n        }\n    }\n}\n\nvoid dfs(int u) {\n    visited[u] = true;\n    for (int v : adj[u]) {\n        if (!visited[v]) dfs(v);\n    }\n}\n\nvoid solve() {\n    int n, m;\n    cin >> n >> m;\n    for (int i = 0; i < m; i++) {\n        int u, v;\n        cin >> u >> v;\n        adj[u].push_back(v);\n        adj[v].push_back(u);\n    }\n    bfs(1, n);\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    int t = 1;\n    while (t--) solve();\n    return 0;\n}\n` },
   ],
   C: [
     { label: "Hello World", extension: ".c", content: `#include <stdio.h>\n\nint main() {\n    printf("Hello, World!\\n");\n    return 0;\n}\n` },
+    { label: "CP Boilerplate", extension: ".c", content: `#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n#define MAXN 100005\n\nvoid solve() {\n    int n;\n    scanf("%d", &n);\n    printf("%d\\n", n);\n}\n\nint main() {\n    int t = 1;\n    // scanf("%d", &t);\n    while (t--) solve();\n    return 0;\n}\n` },
   ],
   PHP: [
     { label: "Hello World", extension: ".php", content: `<?php\necho "Hello, World!";\n?>\n` },
@@ -107,18 +113,27 @@ export function NewFileDialog({ onConfirm, defaultType = "file", trigger }: NewF
     if (e.key === "Escape") setOpen(false);
   };
 
+  // Inject onClick directly onto the trigger so stopPropagation inside it
+  // doesn't block the dialog from opening (wrapper-div approach breaks this).
+  const openHandler = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(true);
+  };
+
+  const triggerEl = trigger ?? (
+    <button
+      className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
+      title={type === "file" ? "New File" : "New Folder"}
+    >
+      {type === "file" ? <FilePlus size={15} /> : <FolderPlus size={15} />}
+    </button>
+  );
+
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {trigger ?? (
-          <button
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent"
-            title={type === "file" ? "New File" : "New Folder"}
-          >
-            {type === "file" ? <FilePlus size={15} /> : <FolderPlus size={15} />}
-          </button>
-        )}
-      </div>
+      {isValidElement(triggerEl)
+        ? cloneElement(triggerEl as React.ReactElement<React.HTMLAttributes<HTMLElement>>, { onClick: openHandler })
+        : triggerEl}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
