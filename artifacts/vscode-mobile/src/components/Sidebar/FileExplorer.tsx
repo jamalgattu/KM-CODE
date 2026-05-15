@@ -35,6 +35,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
   const handleClick = () => {
     if (node.type === "folder") {
       toggleFolder(node.id);
+      onSelect(node.id); // select so action buttons show on mobile (no hover)
     } else {
       openFile(node.id);
       onSelect(node.id);
@@ -125,7 +126,7 @@ function FileTreeItem({ node, depth, onSelect, selectedId }: FileTreeItemProps) 
           </span>
         )}
 
-        <div className={cn("items-center gap-0.5 ml-auto", isSelected ? "flex" : "hidden group-hover:flex")}>
+        <div className={cn("items-center gap-0.5 ml-auto", (isSelected || node.isOpen) ? "flex" : "hidden group-hover:flex")}>
           {node.type === "folder" && (
             <>
               <NewFileDialog

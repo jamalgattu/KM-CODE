@@ -12,10 +12,15 @@ function detectPlatform(): Platform {
 }
 
 function isStandalone(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true
-  );
+  try {
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    );
+  } catch {
+    return false;
+  }
 }
 
 const DISMISS_KEY = "szz-pwa-dismissed-v1";
