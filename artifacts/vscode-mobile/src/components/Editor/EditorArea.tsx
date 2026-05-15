@@ -3,9 +3,11 @@ import { useEditorStore } from "@/store/editorStore";
 import { getLanguageFromPath } from "@/types/editor";
 import { CodeEditor } from "./CodeEditor";
 import { LivePreview } from "./LivePreview";
-import { Files, Play, Loader2, Download, Copy, Eye, EyeOff, Camera } from "lucide-react";
+import { Files, Play, Loader2, Download, Copy, Eye, EyeOff, Camera, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toPng } from "html-to-image";
+import { openSearchPanel } from "@codemirror/search";
+import { getCurrentEditorView } from "@/lib/editorView";
 
 const ALL_RUNNABLE_LANGS = new Set([
   "javascript", "typescript", "python", "python3", "bash", "sh", "shell",
@@ -200,6 +202,18 @@ export function EditorArea() {
               <span className="hidden xs:inline">Preview</span>
             </button>
           )}
+
+          {/* Find in file */}
+          <button
+            onClick={() => {
+              const view = getCurrentEditorView();
+              if (view) openSearchPanel(view);
+            }}
+            className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+            title="Find in File (Ctrl+F)"
+          >
+            <Search size={13} className="sm:w-3 sm:h-3" />
+          </button>
 
           {/* Copy */}
           <button

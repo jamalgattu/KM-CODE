@@ -16,36 +16,47 @@ const DEFAULT_FILES: FileNode[] = [
 A free mobile-first code editor for everyone.
 
 ## Getting Started
-1. Click the **+** button to create a new file (with starter templates!)
-2. Select a language and start coding
-3. Hit the **Run** button or press \`Ctrl+Enter\` to execute your code
+1. Tap the **⌘** button (top-right) to open the **Command Palette**
+2. Or tap **+** in the Explorer to create a file with a starter template
+3. Hit **Run** or press \`Ctrl+Enter\` to execute your code
 
-## Supported Languages
-JavaScript, TypeScript, Python, Java, C++, C, Rust, Go, PHP, Ruby, Swift, Bash
+## Languages
+JavaScript · TypeScript · Python · Java · C/C++ · Rust · Go
+PHP · Ruby · Swift · Bash/Shell · Kotlin · YAML · HTML · CSS · SQL
+
+## Themes
+One Dark · Dracula · Monokai · Nord · GitHub Dark · Catppuccin Mocha
+Default Light · Solarized Light · GitHub Light
 
 ## Features
-- **Syntax Highlighting** — VS Code-like colors for all languages
-- **Templates** — create files with pre-filled starter code
-- **HTML Preview** — live preview for HTML files
-- **Mobile Symbol Bar** — quick-insert coding symbols on mobile
-- **Download / Copy** — save or copy any file instantly
-- **Swipe Gestures** — swipe right to open sidebar, left to close
+- **Command Palette** — \`Ctrl+Shift+P\` or tap ⌘ in titlebar
+- **AI Assistant** — open the AI tab in the bottom panel
+- **Snippets** — type a prefix (e.g. \`fn\`, \`cl\`, \`for\`) and select from autocomplete
+- **Find & Replace** — \`Ctrl+F\` or tap the search icon in the editor toolbar
+- **9 Themes** — pick in Settings or via Command Palette
+- **HTML / Markdown Preview** — live split preview for web files
+- **Mobile Symbol Bar** — quick-insert symbols on mobile keyboard
+- **Pinch-to-zoom** — two-finger pinch to change font size
+- **Download / ZIP** — save individual files or whole project
 
 ## Keyboard Shortcuts
-- \`Ctrl+S\` → Save file
-- \`Ctrl+Enter\` → Run current file
-- \`Ctrl+B\` → Toggle sidebar
-- \`Ctrl+\`\` → Open terminal
-- \`Ctrl+Shift+E\` → Explorer
-- \`Ctrl+Shift+F\` → Search
+| Shortcut | Action |
+|----------|--------|
+| \`Ctrl+S\` | Save |
+| \`Ctrl+Enter\` | Run |
+| \`Ctrl+/\` | Toggle comment |
+| \`Ctrl+F\` | Find in file |
+| \`Ctrl+G\` | Go to line |
+| \`Ctrl+B\` | Toggle sidebar |
+| \`Ctrl+Shift+P\` | Command palette |
+| \`Ctrl+\`\` | Terminal |
+| \`Alt+↑↓\` | Move line up/down |
+| \`F11\` | Fullscreen |
 
 ## Terminal Commands
-- \`run\` → execute current file
-- \`clear\` → clear terminal
-- \`help\` → show help
-- \`ls\` → list files
+\`run\` · \`clear\` · \`help\` · \`ls\`
 
-Happy coding! 🚀
+Happy coding!
 `,
   },
   {
@@ -119,7 +130,7 @@ interface EditorStore extends EditorState {
   closeOtherTabs: (tabId: string) => void;
   closeTabsToRight: (tabId: string) => void;
 
-  setTheme: (theme: "dark" | "light") => void;
+  setTheme: (theme: string) => void;
   setFontSize: (size: number) => void;
   setTabSize: (size: number) => void;
   setWordWrap: (wrap: boolean) => void;

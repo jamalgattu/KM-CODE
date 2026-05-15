@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Save, Play, Loader2, TerminalSquare, Code2, LogOut, User, Cloud, CloudOff, Maximize2, Minimize2, Archive } from "lucide-react";
+import { Save, Play, Loader2, TerminalSquare, Code2, LogOut, User, Cloud, CloudOff, Maximize2, Minimize2, Archive, Command } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { cn } from "@/lib/utils";
 import { KeyboardShortcutsDialog } from "@/components/KeyboardShortcutsDialog";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { createZipBlob } from "@/lib/createZip";
+import { DARK_THEME_IDS } from "@/lib/editorThemes";
 import type { AuthUser } from "@/hooks/useAuth";
 import { FileNode } from "@/types/editor";
 
@@ -65,9 +66,10 @@ interface TitleBarProps {
   authUser: AuthUser | null;
   onSignOut: () => Promise<void>;
   onGoToLine?: () => void;
+  onCommandPalette?: () => void;
 }
 
-export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
+export function TitleBar({ authUser, onSignOut, onGoToLine, onCommandPalette }: TitleBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -149,7 +151,7 @@ export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
       case "Preview": setActivePanel("preview" as never); if (!panelVisible) togglePanel(); break;
       case "Toggle Sidebar": toggleSidebar(); break;
       case "Toggle Fullscreen": toggleFullscreen(); break;
-      case "Toggle Theme": setTheme(theme === "dark" ? "light" : "dark"); break;
+      case "Toggle Theme": setTheme(DARK_THEME_IDS.has(theme) ? "light" : "dark"); break;
       case "Explorer": setActiveSidePanel("explorer"); break;
       case "Search": setActiveSidePanel("search"); break;
       case "Source Control": setActiveSidePanel("git"); break;
@@ -235,9 +237,19 @@ export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
       <div className="flex items-center gap-0 sm:gap-0.5 px-1 sm:px-2">
         <KeyboardShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
+        {/* Command Palette button — visible on mobile */}
+        <button
+          onClick={onCommandPalette}
+          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          title="Command Palette (Ctrl+Shift+P)"
+          data-testid="command-palette-button"
+        >
+          <Command size={16} className="sm:w-[15px] sm:h-[15px]" />
+        </button>
+
         <button
           onClick={handleDownloadZip}
-          className="p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+          className="hidden sm:flex p-2.5 sm:p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
           title="Download Project as ZIP"
           data-testid="zip-button"
         >
@@ -343,10 +355,10 @@ export function TitleBar({ authUser, onSignOut, onGoToLine }: TitleBarProps) {
 
                 <div className="py-1">
                   <button
-                    onClick={() => { setUserMenuOpen(false); setTheme(theme === "dark" ? "light" : "dark"); }}
+                    onClick={() => { setUserMenuOpen(false); setTheme(DARK_THEME_IDS.has(theme) ? "light" : "dark"); }}
                     className="w-full text-left px-4 py-2.5 text-sm hover:bg-sidebar-accent text-foreground transition-colors"
                   >
-                    Toggle {theme === "dark" ? "Light" : "Dark"} Theme
+                    Toggle {DARK_THEME_IDS.has(theme) ? "Light" : "Dark"} Theme
                   </button>
                 </div>
 

@@ -24,7 +24,7 @@ export interface EditorState {
   files: FileNode[];
   openTabs: Tab[];
   activeTabId: string | null;
-  theme: "dark" | "light";
+  theme: string;
   fontSize: number;
   tabSize: number;
   wordWrap: boolean;
@@ -35,7 +35,7 @@ export interface EditorState {
   sidebarVisible: boolean;
   panelVisible: boolean;
   panelHeight: number;
-  activePanel: "terminal" | "problems" | "output" | "search" | "preview" | "input";
+  activePanel: "terminal" | "problems" | "output" | "search" | "preview" | "input" | "ai";
   activeSidePanel: "explorer" | "search" | "git" | "extensions" | "settings";
   stdin: string;
   isFullscreen: boolean;

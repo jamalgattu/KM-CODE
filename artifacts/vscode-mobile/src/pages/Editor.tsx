@@ -10,14 +10,16 @@ import { StatusBar } from "@/components/StatusBar/StatusBar";
 import { MobileSymbolBar } from "@/components/MobileSymbolBar";
 import { FloatingRunButton } from "@/components/FloatingRunButton";
 import { GoToLineDialog } from "@/components/GoToLineDialog";
+import { CommandPalette } from "@/components/CommandPalette";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useBackendSync } from "@/hooks/useBackendSync";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { getCurrentEditorView } from "@/lib/editorView";
+import { DARK_THEME_IDS } from "@/lib/editorThemes";
 import type { AuthUser } from "@/hooks/useAuth";
 
 const SIDEBAR_WIDTH_DESKTOP = 220;
-const SIDEBAR_WIDTH_MOBILE = 260;
+const SIDEBAR_WIDTH_MOBILE  = 260;
 
 interface EditorPageProps {
   authUser: AuthUser | null;
@@ -35,6 +37,7 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
 
   const [goToLineOpen, setGoToLineOpen] = useState(false);
   const [docLines, setDocLines] = useState(0);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   useBackendSync();
   useSwipeGesture();
@@ -45,9 +48,10 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
+  // Sync app theme (Tailwind dark class) with selected editor theme
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
+    if (DARK_THEME_IDS.has(theme)) {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
@@ -82,7 +86,6 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
     }
   }, [isFullscreen]);
 
-  // Sync browser fullscreen exit (Escape) with store
   useEffect(() => {
     const handler = () => {
       if (!document.fullscreenElement && isFullscreen) toggleFullscreen();
@@ -110,6 +113,10 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
       if (meta && e.key === "Enter") { e.preventDefault(); executeRun(); }
       if (meta && e.key === "g") { e.preventDefault(); openGoToLine(); }
       if (e.key === "F11") { e.preventDefault(); toggleFullscreen(); }
+      if (meta && e.shiftKey && (e.key === "P" || e.key === "p")) {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
       if (meta && e.shiftKey && e.key === "E") {
         e.preventDefault();
         setActiveSidePanel("explorer");
@@ -150,7 +157,21 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
         totalLines={docLines}
       />
 
-      {!isFullscreen && <TitleBar authUser={authUser} onSignOut={onSignOut} onGoToLine={openGoToLine} />}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onGoToLine={() => { setCommandPaletteOpen(false); openGoToLine(); }}
+        onNewFile={() => { setCommandPaletteOpen(false); setSidebarVisible(true); setActiveSidePanel("explorer"); }}
+      />
+
+      {!isFullscreen && (
+        <TitleBar
+          authUser={authUser}
+          onSignOut={onSignOut}
+          onGoToLine={openGoToLine}
+          onCommandPalette={() => setCommandPaletteOpen(true)}
+        />
+      )}
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Activity bar — hidden on mobile and in fullscreen */}
@@ -160,7 +181,7 @@ export function EditorPage({ authUser, onSignOut }: EditorPageProps) {
           </div>
         )}
 
-        {/* Sidebar — overlay on mobile, inline on desktop; hidden in fullscreen */}
+        {/* Sidebar — overlay on mobile, inline on desktop */}
         {sidebarVisible && !isFullscreen && (
           <>
             {isMobile && (

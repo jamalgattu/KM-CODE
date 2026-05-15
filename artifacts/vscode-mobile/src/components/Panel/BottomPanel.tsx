@@ -1,19 +1,21 @@
 import { useRef, useCallback } from "react";
-import { X, TerminalSquare, AlertTriangle, FileText, Globe, ArrowDownToLine } from "lucide-react";
+import { X, TerminalSquare, AlertTriangle, FileText, Globe, ArrowDownToLine, Bot } from "lucide-react";
 import { useEditorStore } from "@/store/editorStore";
 import { Terminal } from "./Terminal";
 import { ProblemsPanel } from "./ProblemsPanel";
 import { OutputPanel } from "./OutputPanel";
 import { HTMLPreview } from "./HTMLPreview";
 import { InputPanel } from "./InputPanel";
+import { AIChatPanel } from "./AIChatPanel";
 import { cn } from "@/lib/utils";
 
 const PANEL_TABS = [
   { id: "terminal" as const, label: "Terminal", icon: TerminalSquare },
   { id: "problems" as const, label: "Problems", icon: AlertTriangle },
-  { id: "output" as const, label: "Output", icon: FileText },
-  { id: "input" as const, label: "Input", icon: ArrowDownToLine },
-  { id: "preview" as const, label: "Preview", icon: Globe },
+  { id: "output"  as const, label: "Output",   icon: FileText },
+  { id: "input"   as const, label: "Input",    icon: ArrowDownToLine },
+  { id: "ai"      as const, label: "AI",        icon: Bot },
+  { id: "preview" as const, label: "Preview",   icon: Globe },
 ];
 
 export function BottomPanel() {
@@ -23,10 +25,10 @@ export function BottomPanel() {
   } = useEditorStore();
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const errorCount = problems.filter((p) => p.severity === "error").length;
-  const warnCount = problems.filter((p) => p.severity === "warning").length;
-  const hasStdin = stdin.trim().length > 0;
+  const warnCount  = problems.filter((p) => p.severity === "warning").length;
+  const hasStdin   = stdin.trim().length > 0;
 
-  const activeTab = openTabs.find((t) => t.id === activeTabId);
+  const activeTab  = openTabs.find((t) => t.id === activeTabId);
   const isHTMLFile = activeTab?.language === "html";
 
   const handleMouseDown = useCallback(
@@ -40,13 +42,11 @@ export function BottomPanel() {
         const newHeight = Math.min(Math.max(dragRef.current.startHeight + delta, 100), 500);
         setPanelHeight(newHeight);
       };
-
       const handleMouseUp = () => {
         dragRef.current = null;
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
       };
-
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
@@ -64,13 +64,11 @@ export function BottomPanel() {
         const newHeight = Math.min(Math.max(dragRef.current.startHeight + delta, 100), 500);
         setPanelHeight(newHeight);
       };
-
       const handleTouchEnd = () => {
         dragRef.current = null;
         document.removeEventListener("touchmove", handleTouchMove);
         document.removeEventListener("touchend", handleTouchEnd);
       };
-
       document.addEventListener("touchmove", handleTouchMove);
       document.addEventListener("touchend", handleTouchEnd);
     },
@@ -90,7 +88,7 @@ export function BottomPanel() {
       style={{ height: panelHeight }}
       data-testid="bottom-panel"
     >
-      {/* Resize handle — taller on mobile for easier touch dragging */}
+      {/* Resize handle */}
       <div
         className="panel-resize-handle h-2 sm:h-1 bg-border/50 hover:bg-primary/50 active:bg-primary/70 transition-colors shrink-0 touch-none cursor-row-resize flex items-center justify-center"
         onMouseDown={handleMouseDown}
@@ -101,20 +99,20 @@ export function BottomPanel() {
       </div>
 
       {/* Panel tabs */}
-      <div className="flex items-center border-b border-border shrink-0 bg-muted/30">
+      <div className="flex items-center border-b border-border shrink-0 bg-muted/30 overflow-x-auto">
         {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setActivePanel(id as any)}
+            onClick={() => setActivePanel(id as never)}
             className={cn(
-              "flex items-center gap-1.5 px-3 h-10 sm:h-8 text-xs cursor-pointer transition-colors relative touch-manipulation",
+              "flex items-center gap-1.5 px-3 h-10 sm:h-8 text-xs cursor-pointer transition-colors relative touch-manipulation shrink-0",
               activePanel === id
                 ? "text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
             data-testid={`panel-tab-${id}`}
           >
-            <Icon size={13} />
+            <Icon size={id === "ai" ? 12 : 13} className={id === "ai" ? "text-purple-400" : ""} />
             {label}
             {id === "problems" && (errorCount + warnCount) > 0 && (
               <span className="ml-0.5 text-xs text-destructive">
@@ -128,7 +126,7 @@ export function BottomPanel() {
             )}
           </button>
         ))}
-        <div className="ml-auto flex items-center pr-1">
+        <div className="ml-auto flex items-center pr-1 shrink-0">
           <button
             onClick={togglePanel}
             className="p-2 sm:p-1 rounded text-muted-foreground hover:text-foreground hover:bg-sidebar-accent touch-manipulation"
@@ -142,10 +140,11 @@ export function BottomPanel() {
 
       {/* Panel content */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {activePanel === "terminal" && <Terminal />}
-        {activePanel === "problems" && <ProblemsPanel />}
-        {activePanel === "output" && <OutputPanel />}
-        {activePanel === "input" && <InputPanel />}
+        {activePanel === "terminal"  && <Terminal />}
+        {activePanel === "problems"  && <ProblemsPanel />}
+        {activePanel === "output"    && <OutputPanel />}
+        {activePanel === "input"     && <InputPanel />}
+        {activePanel === "ai"        && <AIChatPanel />}
         {(activePanel as string) === "preview" && <HTMLPreview />}
       </div>
     </div>
