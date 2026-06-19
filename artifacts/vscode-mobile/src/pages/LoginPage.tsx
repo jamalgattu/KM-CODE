@@ -50,12 +50,12 @@ export function LoginPage({ onGuest }: Props) {
 
   return (
     <div
-      className="min-h-dvh w-screen flex flex-col lg:flex-row overflow-auto"
+      className="min-h-dvh w-full flex flex-col lg:flex-row overflow-y-auto"
       style={{
         background: '#0a0f1a',
         backgroundImage: `radial-gradient(ellipse 80% 50% at 20% 40%, rgba(30,110,232,0.07) 0%, transparent 60%),
                           radial-gradient(ellipse 60% 40% at 80% 70%, rgba(99,60,180,0.06) 0%, transparent 55%)`,
-      }}
+      } as React.CSSProperties}
     >
       {/* Subtle dot grid overlay */}
       <div
